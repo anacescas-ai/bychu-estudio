@@ -135,10 +135,11 @@ dialog.largo{width:min(860px,calc(100vw - 32px))}
       <option value="ideias">Ideias novas de vídeos</option>
       <option value="livro">Estudar um livro comigo</option>
       <option value="revisar">Revisar um roteiro meu</option>
+      <option value="edicao">Plano de edição e animações de um roteiro</option>
     </select>
     <div id="gCampoIdeia"><label>Ideia</label><select id="gIdeia"></select></div>
     <div id="gCampoLivro"><label>Livro de apoio (opcional)</label><select id="gLivro"></select></div>
-    <div id="gCampoRoteiro" style="display:none"><label>Roteiro para revisar</label><select id="gRoteiro"></select></div>
+    <div id="gCampoRoteiro" style="display:none"><label id="gRotLabel">Roteiro para revisar</label><select id="gRoteiro"></select></div>
     <div id="gCampoTema" style="display:none"><label>Tema para as ideias (opcional)</label><input id="gTema" placeholder="ex.: anjos, alquimia, mundos paralelos"></div>
     <div id="gCampoDur"><label>Duração aproximada</label>
       <select id="gDur"><option>3 a 5 minutos</option><option selected>8 a 12 minutos</option><option>15 a 20 minutos</option><option>Short (até 60 segundos)</option></select></div>
@@ -338,7 +339,7 @@ const ST_IDEIA=["Ideia","Pesquisando","Roteirizando","Gravado","Publicado"];
 const ST_LIVRO=["Quero ler","Lendo","Lido","Procurando"];
 const ST_ROT=["Rascunho","Revisando","Pronto para gravar","Gravado"];
 
-const BIBLIA_INICIAL=`BÍBLIA DO CANAL BYCHU — versão 2
+const BIBLIA_INICIAL=`BÍBLIA DO CANAL BYCHU — versão 3
 
 TEMAS
 Lei da atração, mistérios do universo, livros antigos sobre magia, bruxaria e alquimia, numerologia, anjos, mundos paralelos, mente humana e outros assuntos misteriosos. Linha forte: livros, principalmente os pouco conhecidos, antigos ou difíceis de acessar.
@@ -371,15 +372,38 @@ REGRAS PARA ESCREVER OS ROTEIROS
 - Sem resumo repetindo tudo no final e sem listas de três itens para tudo.
 - Frases curtas e respiradas, de tamanhos variados, com pausas para pensar.
 - Entregar rascunho em tópicos, para eu falar do meu jeito na gravação.
-- Marcar onde entraria animação ou imagem, assim: [ANIMAÇÃO: ...] ou [IMAGEM: ...].
+- Marcar, em linhas próprias, onde entra edição visual: [ANIMAÇÃO: ...], [IMAGEM: ...], [GALINHA: ...], [SOM: ...] ou [EDIÇÃO: ...].
 - Nada de promessa de resultado. Em livros modernos, falar com as minhas palavras e citar só trechos pequenos.
 
 APRESENTAÇÃO E IDENTIDADE
 Nome do canal: ByChu (tudo junto, como aparece na animação). Mascote: a minha galinha de estimação.
 Abertura animada, desenhada frame por frame, com cerca de 25 quadros: a galinha vem curiosa em direção à tela, inclina a cabeça, bica a tela ("BIC!"), e do bico explode uma chuva de estrelas douradas que se juntam e escrevem "ByChu" em letra cursiva dourada sobre fundo escuro. No final, a galinha volta espiando num canto, com um coraçãozinho.
 Clima da abertura: curiosidade, mágica e carinho, nunca medo. Dourado sobre escuro lembra livro antigo e mistério. Ideal: 4 a 6 segundos, com som de "bic" marcado e brilho suave nas estrelas.
-Detalhe de ritmo: acelerar a aproximação e deixar o nome parado um pouco mais, para dar tempo de ler.`;
+Detalhe de ritmo: acelerar a aproximação e deixar o nome parado um pouco mais, para dar tempo de ler.
 
+EDIÇÃO E ANIMAÇÃO (criatividade visual)
+Eu faço edição e animações nos meus vídeos, e quero que isso seja uma marca do canal, não enfeite.
+- A galinha é personagem recorrente: reações curtas (inclinar a cabeça num "?", arregalar o olho no arrepio, bicar um detalhe, dormir num trecho parado).
+- Animações-assinatura que se repetem: selo de LENDA, TRADIÇÃO ou FATO HISTÓRICO, estrela que marca o momento do arrepio, páginas de livro antigo virando.
+- Livros raros: mostrar a página, dar zoom em detalhes, ilustrar à mão o que ninguém fotografou.
+- Ideias abstratas (mundos paralelos, mente humana, alquimia): metáfora visual simples e bonita, nunca imagem genérica.
+- Ritmo: respiros calmos nos trechos reflexivos, cortes mais rápidos na revelação. Som suave que combine com o clima.
+- Todo vídeo tem pelo menos um "momento assinatura" visual novo.
+- Sempre indicar o esforço de cada ideia (simples, médio ou caprichado), para eu escolher o que cabe no meu tempo.`;
+
+const DIRECAO_VISUAL=`## DIREÇÃO VISUAL DO CANAL (edição e animação)
+O que eu já defini: faço edição e animações nos meus vídeos. A abertura é desenhada por mim, frame por frame: a minha galinha de estimação (mascote) vem correndo em direção à tela, bica ("BIC!"), caem estrelas douradas que escrevem "ByChu" sobre fundo escuro, e ela volta espiando com um coraçãozinho.
+Paleta e clima: dourado sobre escuro, livro antigo, estrelas, mistério que dá arrepio sem susto.
+Seja criativa(o) e proponha coisas que eu não pensaria, mas respeite o que eu consigo fazer sozinha (desenho à mão, edição de vídeo):
+- Use a galinha como personagem recorrente: reações curtas (inclinar a cabeça num "?", arregalar o olho no arrepio, bicar um detalhe importante, dormir num trecho parado). Ela pode virar o meu "minha nossa senhora" visual.
+- Pense em animações-assinatura que se repetem (um selo de LENDA, TRADIÇÃO ou FATO HISTÓRICO que carimba na tela, uma estrela que marca o momento do arrepio, páginas de livro antigo que se viram).
+- Para livros raros: mostrar a página, dar zoom em detalhes, ilustrar à mão o que ninguém fotografou.
+- Para ideias abstratas (mundos paralelos, mente humana, alquimia): metáforas visuais simples e bonitas, em vez de imagem genérica.
+- Varie o ritmo da edição: respiros calmos nos momentos reflexivos, cortes mais rápidos na revelação.
+- Som: sugerir efeitos e música suave que combinem com o clima (brilho de estrelas, página virando, silêncio antes da revelação).
+- Sempre diga o nível de esforço de cada ideia (simples, médio ou caprichado), para eu escolher o que cabe no meu tempo.
+Marque no roteiro, em linhas próprias: [ANIMAÇÃO: ...], [IMAGEM: ...], [GALINHA: ...], [SOM: ...], [EDIÇÃO: ...].
+`;
 const CHAVE="bychu-estudio-v1";
 let D=carregar();
 function carregar(){
@@ -746,7 +770,7 @@ function pedidoEstudo(){const i=estudoId;$("dEstudo").close();estudar(i);montarP
 // ===== modo gravação =====
 let teleVelocidade=3,teleRodando=false,teleRAF=null,teleUlt=0,teleAcum=0;
 function teleTextoHTML(t){
-  return esc(t).split("\n").map(l=>/^\s*\[(ANIMAÇÃO|ANIMACAO|IMAGEM)/i.test(l)?`<span class="marca">${l}</span>`:l).join("\n").replace(/\n(<span class="marca">)/g,"$1").replace(/(<\/span>)\n/g,"$1");
+  return esc(t).split("\n").map(l=>/^\s*\[(ANIMAÇÃO|ANIMACAO|IMAGEM|GALINHA|SOM|EDIÇÃO|EDICAO)/i.test(l)?`<span class="marca">${l}</span>`:l).join("\n").replace(/\n(<span class="marca">)/g,"$1").replace(/(<\/span>)\n/g,"$1");
 }
 function teleAbrir(rid,texto){
   const r=D.roteiros.find(x=>x.id===rid);const t=texto!=null?texto:(r&&r.texto);
@@ -839,8 +863,9 @@ let tB;function salvarBiblia(){clearTimeout(tB);tB=setTimeout(()=>{D.biblia=$("b
 function atualizaGerar(){
   const t=$("gTipo").value;
   $("gCampoIdeia").style.display=t==="roteiro"?"":"none";
-  $("gCampoLivro").style.display=t==="revisar"?"none":"";
-  $("gCampoRoteiro").style.display=t==="revisar"?"":"none";
+  $("gCampoLivro").style.display=(t==="revisar"||t==="edicao")?"none":"";
+  $("gCampoRoteiro").style.display=(t==="revisar"||t==="edicao")?"":"none";
+  $("gRotLabel").textContent=t==="edicao"?"Roteiro para planejar a edição":"Roteiro para revisar";
   $("gCampoTema").style.display=t==="ideias"?"":"none";
   $("gCampoDur").style.display=(t==="roteiro"||t==="revisar")?"":"none";
 }
@@ -866,10 +891,10 @@ function montarPedido(){
     if(i)p+=`\n## A IDEIA\nTítulo: ${i.titulo}\nTema: ${i.tema}${i.gancho?"\nGancho: "+i.gancho:""}${i.notas?"\nAnotações: "+i.notas:""}\n`;
     p+=blocoLivro(livro);
     if(i)p+=blocoRefs(R.filter(r=>r.ideia===i.id));
-    p+=`\n## COMO ENTREGAR\n- Comece direto na cena ou no mistério, sem saudação genérica.\n- Conte a história em cena, com detalhes para a pessoa imaginar.\n- Marque [ANIMAÇÃO: ...] e [IMAGEM: ...] onde couberem.\n- Sinalize o que é lenda, tradição, teoria ou fato histórico.\n- Termine em esperança ou reflexão, sem resumo repetindo tudo.\n- No fim, sugira 3 títulos e uma ideia de thumbnail.\n`;
+    p+="\n"+DIRECAO_VISUAL+`\n## COMO ENTREGAR\n- Comece direto na cena ou no mistério, sem saudação genérica.\n- Conte a história em cena, com detalhes para a pessoa imaginar.\n- Marque, em linhas próprias, [ANIMAÇÃO: ...], [IMAGEM: ...], [GALINHA: ...], [SOM: ...] e [EDIÇÃO: ...] onde couberem, seguindo a direção visual abaixo.\n- Proponha pelo menos um "momento assinatura" visual neste vídeo, algo que eu não vi em outros canais, e diga o esforço (simples, médio ou caprichado).\n- Sinalize o que é lenda, tradição, teoria ou fato histórico.\n- Termine em esperança ou reflexão, sem resumo repetindo tudo.\n- No fim, sugira 3 títulos e uma ideia de thumbnail.\n`;
   }else if(t==="ideias"){
     const tema=$("gTema").value.trim();
-    p+=`\n## O QUE EU QUERO\nIdeias novas e diferentes de vídeos${tema?" sobre: "+tema:""}. Fuja do óbvio do nicho; prefiro histórias pouco conhecidas, livros raros e casos com detalhes reais.\nPara cada ideia: título provisório, o gancho que arrepia, de onde vem a história (e se é lenda, tradição, teoria ou fato) e por que alguém que nunca ouviu falar ficaria até o fim.\n`;
+    p+=`\n## O QUE EU QUERO\nIdeias novas e diferentes de vídeos${tema?" sobre: "+tema:""}. Fuja do óbvio do nicho; prefiro histórias pouco conhecidas, livros raros e casos com detalhes reais.\nPara cada ideia: título provisório, o gancho que arrepia, de onde vem a história (e se é lenda, tradição, teoria ou fato) e por que alguém que nunca ouviu falar ficaria até o fim.\nTambém me diga, em uma linha, qual seria a ideia visual ou de animação mais marcante de cada uma (pense na galinha, nas estrelas douradas e no clima de livro antigo).\n`;
     p+=blocoLivro(livro);
     if(D.ideias.length)p+=`\nIdeias que já tenho (não repetir): ${D.ideias.map(x=>x.titulo).join("; ")}\n`;
   }else if(t==="livro"){
@@ -884,6 +909,10 @@ function montarPedido(){
     }
     if(caps.length)p+=`\nCapítulos: ${caps.map(x=>x.titulo+(x.status==="Estudado"?" ✓":"")).join(" · ")}\n`;
     p+=blocoLivro(livro);
+  }else if(t==="edicao"){
+    const r=D.roteiros.find(x=>x.id===$("gRoteiro").value);
+    if(!r)return toast("Escolha o roteiro para planejar a edição");
+    p+="\n"+DIRECAO_VISUAL+`\n## O QUE EU QUERO\nUm plano criativo de edição e animação para este roteiro, trecho por trecho. Para cada trecho: o que aparece na tela, que animação ou imagem entra, se a galinha participa e como, o som e o ritmo do corte.\nDepois do plano trecho a trecho, me entregue:\n1. Três ideias de "momento assinatura" que fujam do óbvio, cada uma com o nível de esforço (simples, médio ou caprichado).\n2. Uma versão enxuta do plano, só com o que é simples, para eu conseguir fazer rápido.\n3. Uma lista do que eu preciso desenhar, juntar ou gravar, na ordem em que vou usar.\n4. Ideias de thumbnail com a galinha e as estrelas douradas.\nNão altere o texto do roteiro; só proponha o visual em volta dele.\n\n## ROTEIRO\n${r.titulo}\n${r.texto}\n`;
   }else{
     const r=D.roteiros.find(x=>x.id===$("gRoteiro").value);
     if(!r)return toast("Escolha o roteiro para revisar");
