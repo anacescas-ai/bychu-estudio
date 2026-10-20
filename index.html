@@ -430,11 +430,22 @@ const st = document.getElementById("nuvemStatus");
 const btn = document.getElementById("btnEntrar");
 function status(tipo, txt){ st.className = "tag " + (tipo||""); st.textContent = txt; }
 
+let fb = null;
 if (cfg) {
   const V = "https://www.gstatic.com/firebasejs/11.0.2/";
-  const { initializeApp } = await import(V + "firebase-app.js");
-  const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = await import(V + "firebase-auth.js");
-  const { getFirestore, doc, getDoc, setDoc, onSnapshot } = await import(V + "firebase-firestore.js");
+  try {
+    fb = Object.assign({},
+      await import(V + "firebase-app.js"),
+      await import(V + "firebase-auth.js"),
+      await import(V + "firebase-firestore.js"));
+  } catch (e) {
+    status("erro", "☁ nuvem indisponível aqui");
+    st.title = "Não deu para carregar o Firebase. No site publicado funciona; tudo continua salvo neste navegador.";
+  }
+}
+if (fb) {
+  const { initializeApp, getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+          getFirestore, doc, getDoc, setDoc, onSnapshot } = fb;
 
   const app = initializeApp(cfg);
   const auth = getAuth(app);
