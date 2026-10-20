@@ -126,8 +126,19 @@ dialog.largo{width:min(860px,calc(100vw - 32px))}
 
 <!-- GERAR -->
 <section id="gerar" class="ativo">
-  <h2>Montar pedido para o Claude</h2>
-  <p class="dica">Escolha o que quer. O estúdio junta a Bíblia, o livro e a ideia num pedido completo. Copie e cole no chat do projeto.</p>
+  <h2>Criar com o Claude</h2>
+  <p class="dica">Escolha o que quer. O estúdio junta a Bíblia, o livro, a ideia e as transcrições num pedido completo, e a IA escreve aqui mesmo. Se preferir, copie o pedido e cole no chat do projeto.</p>
+  <details class="card" id="iaAjustes" style="margin-bottom:12px">
+    <summary style="cursor:pointer;font-weight:700">⚙️ Ajustes da IA <span class="meta" id="iaAjustesResumo"></span></summary>
+    <label>Endereço do servidorzinho da IA (Cloudflare)</label>
+    <input id="iaUrl" placeholder="https://bychu-ia.SEU-NOME.workers.dev" onchange="salvarAjustesIA()">
+    <label>Modelo</label>
+    <select id="iaModelo" onchange="salvarAjustesIA()">
+      <option value="sonnet">Claude Sonnet 5.5 · melhor para roteiros (≈ alguns centavos de dólar por roteiro)</option>
+      <option value="haiku">Claude Haiku 5.5 · bem mais barato e rápido, menos caprichado</option>
+    </select>
+    <p class="meta" style="margin:8px 0 0">A chave da API fica guardada só na Cloudflare, nunca aqui. Só a sua conta do Google consegue usar.</p>
+  </details>
   <div class="card">
     <label>O que você quer?</label>
     <select id="gTipo" onchange="atualizaGerar()">
@@ -148,9 +159,20 @@ dialog.largo{width:min(860px,calc(100vw - 32px))}
     <div class="rodape"><button class="btn" onclick="montarPedido()">✨ Montar pedido</button></div>
   </div>
   <div id="gResultado" style="display:none;margin-top:14px" class="card">
-    <h3>Pedido pronto</h3>
-    <textarea id="pedidoSaida"></textarea>
-    <div class="rodape"><button class="btn" onclick="copiar('pedidoSaida')">📋 Copiar pedido</button></div>
+    <h3>Pedido pronto <span class="meta" id="pedidoConta" style="float:right"></span></h3>
+    <textarea id="pedidoSaida" oninput="contaPedido()"></textarea>
+    <div class="rodape"><button class="btn sec" onclick="copiar('pedidoSaida')">📋 Copiar pedido</button><button class="btn" id="btnGerarIA" onclick="gerarIA()">✨ Gerar com IA</button></div>
+  </div>
+  <div id="iaCard" style="display:none;margin-top:14px" class="card">
+    <h3>✨ Resposta da IA</h3>
+    <div class="meta" id="iaStatus"></div>
+    <textarea id="iaSaida" style="min-height:420px;font-size:15px" placeholder="A resposta aparece aqui enquanto a IA escreve..."></textarea>
+    <div class="rodape">
+      <button class="btn perigo" id="btnPararIA" onclick="pararIA()" style="display:none">⏹ Parar</button>
+      <button class="btn sec" onclick="copiar('iaSaida')">📋 Copiar</button>
+      <button class="btn sec" id="btnIaCap" onclick="iaParaCapitulo()" style="display:none">📖 Guardar no capítulo</button>
+      <button class="btn" id="btnIaRot" onclick="iaParaRoteiro()" style="display:none">🎬 Salvar como roteiro</button>
+    </div>
   </div>
 </section>
 
@@ -424,6 +446,7 @@ window.D_set=n=>{
   D=Object.assign({biblia:BIBLIA_INICIAL,ideias:[],livros:[],roteiros:[]},n);
   salvarLocal();
   if(document.activeElement!==$("bibliaTxt"))$("bibliaTxt").value=D.biblia;
+  if(document.activeElement!==$("iaUrl"))carregarAjustesIA();
   render();
 };
 const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -732,6 +755,7 @@ function renderEstudo(){
       <label>O que aprendi / o que me arrepiou</label>
       <textarea oninput="capSet('${x.id}','notas',this.value,true)">${esc(x.notas)}</textarea>
       <label class="chk"><input type="checkbox" ${x.video?"checked":""} onchange="capSet('${x.id}','video',this.checked)"> Isso daria um vídeo</label>
+      ${x.estudoIA?`<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--gold);font-size:14px">✨ Estudo feito com a IA</summary><div style="white-space:pre-wrap;font-size:14px;color:var(--txt);background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:6px;max-height:360px;overflow:auto">${esc(x.estudoIA)}</div></details>`:""}
       ${x.video?`<label>Qual seria o vídeo?</label><input value="${esc(x.ideiaTxt)}" placeholder="ex.: o ritual que ninguém conseguiu repetir" oninput="capSet('${x.id}','ideiaTxt',this.value,true)">`:""}
       <div class="acoes" style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
         ${x.video?(x.ideiaId&&D.ideias.some(d=>d.id===x.ideiaId)?`<span class="tag verde">💡 já está nas Ideias</span>`:`<button class="btn peq" onclick="capParaIdeia('${x.id}')">💡 Mandar para Ideias</button>`):""}
@@ -884,9 +908,11 @@ function blocoCaps(l){
 }
 function montarPedido(){
   const t=$("gTipo").value, livro=D.livros.find(x=>x.id===$("gLivro").value), extra=$("gExtra").value.trim();
+  pedidoCtx={tipo:t};
   let p=`Você é o assistente de roteiros do meu canal ByChu. Siga à risca a Bíblia do Canal abaixo: ela define meu tom, meu público e as regras.\n\n## BÍBLIA DO CANAL\n${D.biblia}\n`;
   if(t==="roteiro"){
     const i=D.ideias.find(x=>x.id===$("gIdeia").value);
+    pedidoCtx.ideia=i?i.id:"";pedidoCtx.titulo=i?i.titulo:"";
     p+=`\n## O QUE EU QUERO\nUm rascunho de roteiro em tópicos para um vídeo de ${$("gDur").value}.\n`;
     if(i)p+=`\n## A IDEIA\nTítulo: ${i.titulo}\nTema: ${i.tema}${i.gancho?"\nGancho: "+i.gancho:""}${i.notas?"\nAnotações: "+i.notas:""}\n`;
     p+=blocoLivro(livro);
@@ -900,6 +926,7 @@ function montarPedido(){
   }else if(t==="livro"){
     if(!livro)return toast("Escolha o livro que quer estudar");
     const caps=livro.capitulos||[], prox=caps.find(x=>x.status!=="Estudado");
+    pedidoCtx.livro=livro.id;pedidoCtx.cap=prox?prox.id:"";
     if(!caps.length||caps.every(x=>x.status==="Não lido"&&!x.notas)){
       p+=`\n## O QUE EU QUERO\nComeçar a estudar este livro com você, aos poucos. Me conte o contexto (quem escreveu, quando, por que é raro ou importante), separe o que é fato histórico do que é lenda e me ajude a achar as partes que dariam bons vídeos.\n`;
     }else if(prox){
@@ -916,10 +943,89 @@ function montarPedido(){
   }else{
     const r=D.roteiros.find(x=>x.id===$("gRoteiro").value);
     if(!r)return toast("Escolha o roteiro para revisar");
+    pedidoCtx.roteiro=r.id;pedidoCtx.titulo=r.titulo;pedidoCtx.ideia=r.ideia||"";
     p+=`\n## O QUE EU QUERO\nRevise este roteiro (vídeo de ${$("gDur").value}) contra a Bíblia do Canal. Aponte onde ficou com cara de IA, onde a história perdeu o ritmo e onde faltou deixar claro se é lenda ou fato. Depois mostre a versão ajustada.\n\n## ROTEIRO\n${r.titulo}\n${r.texto}\n`;
   }
   if(extra)p+=`\n## OBSERVAÇÃO\n${extra}\n`;
-  $("pedidoSaida").value=p;$("gResultado").style.display="";$("gResultado").scrollIntoView({behavior:"smooth"});
+  $("pedidoSaida").value=p;$("gResultado").style.display="";contaPedido();$("gResultado").scrollIntoView({behavior:"smooth"});
+}
+
+// ===== IA direto no estúdio (caminho B) =====
+let pedidoCtx={}, iaCtrl=null;
+const PRECO={sonnet:[2,10],haiku:[0.10,0.50]};
+function contaPedido(){const n=$("pedidoSaida").value.length;$("pedidoConta").textContent=n?`~${Math.ceil(n/3.5).toLocaleString("pt-BR")} tokens`:""}
+function ajustesIA(){return Object.assign({iaUrl:"",modelo:"sonnet"},D.config||{})}
+function carregarAjustesIA(){const a=ajustesIA();$("iaUrl").value=a.iaUrl;$("iaModelo").value=a.modelo;$("iaAjustesResumo").textContent=a.iaUrl?"· ligada ("+(a.modelo==="haiku"?"Haiku":"Sonnet")+")":"· ainda não configurada";$("btnGerarIA").title=a.iaUrl?"":"Configure o endereço em ⚙️ Ajustes da IA"}
+function salvarAjustesIA(){
+  let u=$("iaUrl").value.trim();if(u&&!/^https:\/\//.test(u))u="https://"+u;u=u.replace(/\/+$/,"");$("iaUrl").value=u;
+  D.config=Object.assign({},D.config||{},{iaUrl:u,modelo:$("iaModelo").value});salvar();carregarAjustesIA();toast("Ajustes da IA salvos");
+}
+function iaStatus(t){const e=$("iaStatus");e.textContent=t;e.style.color=t.startsWith("⚠️")?"var(--rosa)":t.startsWith("Pronto")?"var(--verde)":""}
+function iaBotoes(rodando){
+  $("btnPararIA").style.display=rodando?"":"none";$("btnGerarIA").disabled=rodando;
+  const pronto=!rodando&&$("iaSaida").value.trim();
+  $("btnIaRot").style.display=pronto&&(pedidoCtx.tipo==="roteiro"||pedidoCtx.tipo==="revisar")?"":"none";
+  $("btnIaCap").style.display=pronto&&pedidoCtx.tipo==="livro"&&pedidoCtx.cap?"":"none";
+}
+async function gerarIA(){
+  const pedido=$("pedidoSaida").value.trim();if(!pedido)return toast("Monte o pedido primeiro");
+  const a=ajustesIA();
+  if(!a.iaUrl){$("iaAjustes").open=true;$("iaAjustes").scrollIntoView({behavior:"smooth"});return toast("Falta o endereço do servidorzinho da IA")}
+  let tk=null;try{tk=window.nuvem&&window.nuvem.token?await window.nuvem.token():null}catch(e){}
+  if(!tk)return toast("Entre com o Google (lá em cima) para usar a IA");
+  $("iaCard").style.display="";$("iaSaida").value="";iaStatus("Enviando o pedido...");iaBotoes(true);
+  $("iaCard").scrollIntoView({behavior:"smooth"});
+  iaCtrl=new AbortController();
+  let entrada=0,saida=0,parou="";
+  try{
+    const r=await fetch(a.iaUrl,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+tk},body:JSON.stringify({pedido,modelo:a.modelo}),signal:iaCtrl.signal});
+    if(!r.ok){let m="";try{m=(await r.json()).erro}catch(e){}throw new Error(m||("o servidor respondeu "+r.status))}
+    const leitor=r.body.getReader(),dec=new TextDecoder();let buf="";
+    iaStatus("A IA está pensando...");
+    for(;;){
+      const {value,done}=await leitor.read();if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      let k;
+      while((k=buf.indexOf("\n\n"))>=0){
+        const bloco=buf.slice(0,k);buf=buf.slice(k+2);
+        const linha=bloco.split("\n").find(l=>l.startsWith("data:"));if(!linha)continue;
+        let ev;try{ev=JSON.parse(linha.slice(5))}catch(e){continue}
+        if(ev.type==="message_start"&&ev.message&&ev.message.usage)entrada=ev.message.usage.input_tokens||0;
+        else if(ev.type==="content_block_start"&&ev.content_block&&ev.content_block.type==="thinking")iaStatus("A IA está pensando...");
+        else if(ev.type==="content_block_delta"&&ev.delta&&ev.delta.type==="text_delta"){
+          const s=$("iaSaida"),noFim=s.scrollTop+s.clientHeight>=s.scrollHeight-30;
+          s.value+=ev.delta.text;if(noFim)s.scrollTop=s.scrollHeight;
+          iaStatus("Escrevendo... "+palavras(s.value).toLocaleString("pt-BR")+" palavras");
+        }
+        else if(ev.type==="message_delta"){if(ev.usage&&ev.usage.output_tokens)saida=ev.usage.output_tokens;if(ev.delta&&ev.delta.stop_reason)parou=ev.delta.stop_reason}
+        else if(ev.type==="error")throw new Error((ev.error&&ev.error.message)||"a IA deu erro no meio do caminho");
+      }
+    }
+    const [pi,po]=PRECO[a.modelo]||PRECO.sonnet,custo=(entrada*pi+saida*po)/1e6;
+    iaStatus(`Pronto ✨ · ${palavras($("iaSaida").value).toLocaleString("pt-BR")} palavras · usou ${entrada.toLocaleString("pt-BR")} + ${saida.toLocaleString("pt-BR")} tokens (≈ US$ ${custo.toFixed(custo<0.01?3:2).replace(".",",")})`+(parou==="max_tokens"?" · parou no limite de tamanho":""));
+  }catch(e){
+    if(e.name==="AbortError")iaStatus("Parado. O que já veio continua aí.");
+    else iaStatus("⚠️ "+(e.message||"Não deu certo")+(/Failed to fetch|NetworkError|Load failed/i.test(e.message||"")?" (confira o endereço do servidorzinho em ⚙️ Ajustes da IA)":""));
+  }finally{iaCtrl=null;iaBotoes(false)}
+}
+function pararIA(){if(iaCtrl)iaCtrl.abort()}
+function iaParaRoteiro(){
+  const texto=$("iaSaida").value.trim();if(!texto)return;
+  let o;
+  if(pedidoCtx.tipo==="revisar"&&pedidoCtx.roteiro&&confirm("Trocar o texto do roteiro original por esta versão revisada? (Cancelar = salvar como roteiro novo)")){
+    D.roteiros=D.roteiros.map(x=>x.id===pedidoCtx.roteiro?Object.assign({},x,{texto,status:"Revisando"}):x);o=D.roteiros.find(x=>x.id===pedidoCtx.roteiro);
+  }else{
+    o={id:id(),titulo:(pedidoCtx.titulo||"Roteiro")+(pedidoCtx.tipo==="revisar"?" (revisado)":""),ideia:pedidoCtx.ideia||"",status:"Rascunho",texto,data:Date.now(),gravar:"",editar:"",publicar:""};
+    D.roteiros.push(o);
+    const i=D.ideias.find(x=>x.id===pedidoCtx.ideia);if(i&&i.status==="Ideia"||i&&i.status==="Pesquisando")i.status="Roteirizando";
+  }
+  salvar();render();toast("Roteiro salvo 🎬");irPara("roteiros");abrirRoteiro(o.id);
+}
+function iaParaCapitulo(){
+  const l=D.livros.find(x=>x.id===pedidoCtx.livro),c=l&&(l.capitulos||[]).find(x=>x.id===pedidoCtx.cap);
+  if(!c)return toast("Não achei o capítulo");
+  c.estudoIA=$("iaSaida").value.trim();if(c.status==="Não lido")c.status="Lendo";
+  salvar();render();toast("Guardado em "+c.titulo+" 📖");abrirEstudo(l.id);
 }
 function copiar(campo){const v=$(campo).value;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast("Copiado!")).catch(()=>{$(campo).select();document.execCommand("copy");toast("Copiado!")})}
 
@@ -938,6 +1044,7 @@ function importar(e){
 opts("fIdeia",ST_IDEIA,"Todos os status");opts("fLivro",ST_LIVRO,"Todos");
 $("bibliaTxt").value=D.biblia;render();atualizaGerar();
 $("bmLink").href=linkFavorito();
+carregarAjustesIA();
 if(location.hash==="#extrator")irPara("extrator");
 </script>
 
@@ -1028,6 +1135,7 @@ if (fb) {
 
   window.nuvem = {
     salvarRef, apagarRef,
+    token: async () => auth.currentUser ? auth.currentUser.getIdToken() : null,
     agendar(){
       if (!ref) return;
       pendente = true; status("", "☁ salvando...");
