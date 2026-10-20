@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ByChu Estúdio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#141024; --bg2:#1d1733; --card:#251e40; --line:#3a3060;
+  --txt:#efeaff; --sub:#b4a9d6; --gold:#f2c76e; --rosa:#e98fb5; --verde:#8fd6b4;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:Nunito,system-ui,sans-serif;font-size:16px;line-height:1.5;
+  background-image:radial-gradient(1px 1px at 20% 30%,#fff6 50%,transparent 51%),radial-gradient(1px 1px at 70% 10%,#fff5 50%,transparent 51%),radial-gradient(1.5px 1.5px at 40% 80%,#f2c76e88 50%,transparent 51%),radial-gradient(1px 1px at 90% 60%,#fff4 50%,transparent 51%);
+  background-size:400px 400px;background-attachment:fixed}
+header{padding:20px 16px 8px;max-width:1000px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-family:'Cormorant Garamond',serif;font-size:34px;margin:0;color:var(--gold);letter-spacing:.5px}
+header h1 span{color:var(--sub);font-size:20px;font-weight:500}
+.backup{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#nuvemStatus.ok{color:var(--verde);border-color:#8fd6b466}#nuvemStatus.erro{color:var(--rosa);border-color:#e98fb566}
+nav{max-width:1000px;margin:0 auto;padding:8px 16px;display:flex;gap:6px;overflow-x:auto}
+nav button{background:transparent;border:1px solid var(--line);color:var(--sub);padding:8px 14px;border-radius:999px;cursor:pointer;font:inherit;white-space:nowrap}
+nav button.ativo{background:var(--gold);color:#241a00;border-color:var(--gold);font-weight:700}
+main{max-width:1000px;margin:0 auto;padding:12px 16px 60px}
+section{display:none}section.ativo{display:block}
+h2{font-family:'Cormorant Garamond',serif;font-size:28px;margin:8px 0 4px}
+.dica{color:var(--sub);margin:0 0 16px;font-size:14px}
+.btn{background:var(--gold);color:#241a00;border:0;padding:9px 16px;border-radius:10px;font:inherit;font-weight:700;cursor:pointer}
+.btn.sec{background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:600}
+.btn.peq{padding:5px 10px;font-size:13px}
+.btn.perigo{background:transparent;color:var(--rosa);border:1px solid #e98fb555}
+.barra{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+input,select,textarea{width:100%;background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit}
+textarea{min-height:90px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid #f2c76e66}
+label{display:block;font-size:13px;color:var(--sub);margin:10px 0 4px}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.card h3{margin:0;font-size:17px}
+.card .meta{color:var(--sub);font-size:13px}
+.card .acoes{display:flex;gap:6px;margin-top:auto;padding-top:6px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--sub)}
+.tag.ouro{color:var(--gold);border-color:#f2c76e66}.tag.rosa{color:var(--rosa);border-color:#e98fb566}.tag.verde{color:var(--verde);border-color:#8fd6b466}
+.vazio{color:var(--sub);text-align:center;padding:30px;border:1px dashed var(--line);border-radius:14px}
+.duas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.duas{grid-template-columns:1fr}header h1{font-size:28px}}
+dialog{background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:16px;padding:20px;width:min(640px,calc(100vw - 32px));max-height:90vh}
+dialog::backdrop{background:#0009}
+dialog h3{margin:0 0 6px;font-family:'Cormorant Garamond',serif;font-size:24px}
+.rodape{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+#pedidoSaida{min-height:260px;font-size:14px;font-family:ui-monospace,Consolas,monospace}
+#bibliaTxt{min-height:520px;font-size:15px}
+.aviso{background:#f2c76e14;border:1px solid #f2c76e44;border-radius:12px;padding:10px 12px;font-size:14px;color:var(--sub);margin-bottom:14px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--gold);color:#241a00;padding:10px 18px;border-radius:999px;font-weight:700;opacity:0;transition:.3s;pointer-events:none}
+.toast.on{opacity:1}
+.prev{white-space:pre-wrap;color:var(--sub);font-size:14px;max-height:4.5em;overflow:hidden}
+</style>
+</head>
+<body>
+<header>
+  <h1>ByChu <span>Estúdio</span></h1>
+  <div class="backup">
+    <span id="nuvemStatus" class="tag" title="Sincronização">☁ só neste navegador</span>
+    <button id="btnEntrar" class="btn peq" onclick="window.entrar&&window.entrar()" style="display:none">Entrar com Google</button>
+    <button class="btn sec peq" onclick="exportar()">⬇ Backup</button>
+    <button class="btn sec peq" onclick="document.getElementById('arqImport').click()">⬆ Restaurar</button>
+    <input type="file" id="arqImport" accept=".json" hidden onchange="importar(event)">
+  </div>
+</header>
+<nav id="abas">
+  <button data-aba="gerar" class="ativo">✨ Gerar</button>
+  <button data-aba="ideias">💡 Ideias</button>
+  <button data-aba="biblioteca">📚 Biblioteca</button>
+  <button data-aba="roteiros">🎬 Roteiros</button>
+  <button data-aba="biblia">📜 Bíblia do Canal</button>
+</nav>
+<main>
+
+<!-- GERAR -->
+<section id="gerar" class="ativo">
+  <h2>Montar pedido para o Claude</h2>
+  <p class="dica">Escolha o que quer. O estúdio junta a Bíblia, o livro e a ideia num pedido completo. Copie e cole no chat do projeto.</p>
+  <div class="card">
+    <label>O que você quer?</label>
+    <select id="gTipo" onchange="atualizaGerar()">
+      <option value="roteiro">Roteiro de um vídeo</option>
+      <option value="ideias">Ideias novas de vídeos</option>
+      <option value="livro">Estudar um livro comigo</option>
+      <option value="revisar">Revisar um roteiro meu</option>
+    </select>
+    <div id="gCampoIdeia"><label>Ideia</label><select id="gIdeia"></select></div>
+    <div id="gCampoLivro"><label>Livro de apoio (opcional)</label><select id="gLivro"></select></div>
+    <div id="gCampoRoteiro" style="display:none"><label>Roteiro para revisar</label><select id="gRoteiro"></select></div>
+    <div id="gCampoTema" style="display:none"><label>Tema para as ideias (opcional)</label><input id="gTema" placeholder="ex.: anjos, alquimia, mundos paralelos"></div>
+    <div id="gCampoDur"><label>Duração aproximada</label>
+      <select id="gDur"><option>3 a 5 minutos</option><option selected>8 a 12 minutos</option><option>15 a 20 minutos</option><option>Short (até 60 segundos)</option></select></div>
+    <label>Algo a mais que o Claude precisa saber? (opcional)</label>
+    <textarea id="gExtra" placeholder="ex.: quero abrir com a história do manuscrito sumido"></textarea>
+    <div class="rodape"><button class="btn" onclick="montarPedido()">✨ Montar pedido</button></div>
+  </div>
+  <div id="gResultado" style="display:none;margin-top:14px" class="card">
+    <h3>Pedido pronto</h3>
+    <textarea id="pedidoSaida"></textarea>
+    <div class="rodape"><button class="btn" onclick="copiar('pedidoSaida')">📋 Copiar pedido</button></div>
+  </div>
+</section>
+
+<!-- IDEIAS -->
+<section id="ideias">
+  <h2>Ideias de vídeos</h2>
+  <p class="dica">Tudo que te arrepia vira ideia aqui. Depois é só gerar o roteiro.</p>
+  <div class="barra">
+    <button class="btn" onclick="abrirIdeia()">+ Nova ideia</button>
+    <select id="fIdeia" style="width:auto" onchange="render()"><option value="">Todos os status</option></select>
+  </div>
+  <div id="listaIdeias" class="grade"></div>
+</section>
+
+<!-- BIBLIOTECA -->
+<section id="biblioteca">
+  <h2>Biblioteca</h2>
+  <p class="dica">Os livros que você leu, está lendo ou quer caçar. Anotações e trechos daqui entram nos pedidos.</p>
+  <div class="barra">
+    <button class="btn" onclick="abrirLivro()">+ Novo livro</button>
+    <select id="fLivro" style="width:auto" onchange="render()"><option value="">Todos</option></select>
+  </div>
+  <div id="listaLivros" class="grade"></div>
+</section>
+
+<!-- ROTEIROS -->
+<section id="roteiros">
+  <h2>Roteiros</h2>
+  <p class="dica">Cole aqui o roteiro que o Claude devolveu e vá ajustando do seu jeito.</p>
+  <div class="barra"><button class="btn" onclick="abrirRoteiro()">+ Novo roteiro</button></div>
+  <div id="listaRoteiros" class="grade"></div>
+</section>
+
+<!-- BÍBLIA -->
+<section id="biblia">
+  <h2>Bíblia do Canal</h2>
+  <p class="dica">As regras de estilo do ByChu. Tudo que você mudar aqui passa a valer nos próximos pedidos.</p>
+  <textarea id="bibliaTxt" oninput="salvarBiblia()"></textarea>
+</section>
+</main>
+
+<!-- MODAIS -->
+<dialog id="dIdeia"><h3 id="dIdeiaT">Ideia</h3>
+  <label>Título</label><input id="iTitulo" placeholder="ex.: O livro que ninguém conseguiu ler">
+  <div class="duas">
+    <div><label>Tema</label><select id="iTema"></select></div>
+    <div><label>Status</label><select id="iStatus"></select></div>
+  </div>
+  <label>Livro ligado (opcional)</label><select id="iLivro"></select>
+  <label>Gancho: o que arrepia nessa história?</label><textarea id="iGancho"></textarea>
+  <label>Anotações soltas</label><textarea id="iNotas"></textarea>
+  <div class="rodape"><button class="btn sec" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn" onclick="salvarIdeia()">Salvar</button></div>
+</dialog>
+
+<dialog id="dLivro"><h3 id="dLivroT">Livro</h3>
+  <label>Título</label><input id="lTitulo">
+  <div class="duas">
+    <div><label>Autor</label><input id="lAutor"></div>
+    <div><label>Ano / época</label><input id="lAno" placeholder="ex.: séc. XVII"></div>
+  </div>
+  <div class="duas">
+    <div><label>Status</label><select id="lStatus"></select></div>
+    <div><label>Onde encontrar</label><input id="lOnde" placeholder="ex.: domínio público, sebo"></div>
+  </div>
+  <label>Resumo com as suas palavras</label><textarea id="lResumo"></textarea>
+  <label>Anotações e coisas que te marcaram</label><textarea id="lNotas"></textarea>
+  <label>Trechos curtos (um por linha)</label><textarea id="lTrechos"></textarea>
+  <div class="rodape"><button class="btn sec" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn" onclick="salvarLivro()">Salvar</button></div>
+</dialog>
+
+<dialog id="dRoteiro"><h3 id="dRoteiroT">Roteiro</h3>
+  <label>Título</label><input id="rTitulo">
+  <div class="duas">
+    <div><label>Ideia ligada</label><select id="rIdeia"></select></div>
+    <div><label>Status</label><select id="rStatus"></select></div>
+  </div>
+  <label>Roteiro</label><textarea id="rTexto" style="min-height:300px"></textarea>
+  <div class="rodape"><button class="btn sec" onclick="copiar('rTexto')">📋 Copiar</button><button class="btn sec" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn" onclick="salvarRoteiro()">Salvar</button></div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TEMAS=["Lei da atração","Mistérios do universo","Livros antigos (magia, bruxaria, alquimia)","Numerologia","Anjos","Mundos paralelos","Mente humana","Outro mistério"];
+const ST_IDEIA=["Ideia","Pesquisando","Roteirizando","Gravado","Publicado"];
+const ST_LIVRO=["Quero ler","Lendo","Lido","Procurando"];
+const ST_ROT=["Rascunho","Revisando","Pronto para gravar","Gravado"];
+
+const BIBLIA_INICIAL=`BÍBLIA DO CANAL BYCHU — versão 1
+
+TEMAS
+Lei da atração, mistérios do universo, livros antigos sobre magia, bruxaria e alquimia, numerologia, anjos, mundos paralelos, mente humana e outros assuntos misteriosos. Linha forte: livros, principalmente os pouco conhecidos, antigos ou difíceis de acessar.
+
+POR QUE O CANAL EXISTE
+Esses assuntos prendem a minha atenção. Estou no caminho do autoconhecimento e quero estudar, ter conhecimento e passar adiante. Postura: curiosidade e vontade de compartilhar o que descubro, "aprendendo junto" com quem assiste.
+
+PÚBLICO
+Qualquer pessoa: quem já busca o assunto e quem cai de paraquedas. O vídeo precisa prender pela presença e pela edição, e explicar bem para quem nunca ouviu falar do tema.
+
+O QUE A PESSOA DEVE SENTIR
+Arrepio, reflexão, esperança e curiosidade. Nunca medo, raiva ou desespero.
+
+TOM E VOZ
+Calma, carinhosa e levemente animada. Mistério que arrepia sem susto e que termina em esperança.
+
+BORDÕES
+"Tipo", "trem", "minha nossa senhora", "tá repreendido em nome de Jesus". Uma ou duas vezes por vídeo, em momentos de surpresa ou alívio.
+
+REGRAS DE OURO
+1. Nunca espalhar ódio de graça.
+2. Nunca prometer coisas falsas.
+3. Dizer com clareza quando algo é lenda, tradição, teoria ou fato histórico.
+
+COMO EU CONTO HISTÓRIAS
+De cabo a rabo, com muitos detalhes para a pessoa imaginar a cena, como numa boa fofoca. Contar em cena (quem estava lá, o que aconteceu, o que ninguém explicou) e não só listar fatos.
+
+REGRAS PARA ESCREVER OS ROTEIROS
+- Sem abertura genérica do tipo "Fala, pessoal, hoje vamos falar sobre...".
+- Sem resumo repetindo tudo no final e sem listas de três itens para tudo.
+- Frases curtas e respiradas, de tamanhos variados, com pausas para pensar.
+- Entregar rascunho em tópicos, para eu falar do meu jeito na gravação.
+- Marcar onde entraria animação ou imagem, assim: [ANIMAÇÃO: ...] ou [IMAGEM: ...].
+- Nada de promessa de resultado. Em livros modernos, falar com as minhas palavras e citar só trechos pequenos.
+
+APRESENTAÇÃO
+Canal: ByChu. Abertura com a galinha mascote correndo em direção à tela, bicando, e as estrelas formando o nome.`;
+
+const CHAVE="bychu-estudio-v1";
+let D=carregar();
+function carregar(){
+  try{const s=localStorage.getItem(CHAVE);if(s)return JSON.parse(s)}catch(e){}
+  return {biblia:BIBLIA_INICIAL,ideias:[],livros:[],roteiros:[]};
+}
+function salvarLocal(){try{localStorage.setItem(CHAVE,JSON.stringify(D))}catch(e){toast("Não consegui salvar neste navegador")}}
+function salvar(){D.atualizado=Date.now();salvarLocal();if(window.nuvem)window.nuvem.agendar()}
+// ponte com a nuvem (usada pelo módulo do Firebase)
+window.D_get=()=>D;
+window.D_set=n=>{
+  D=Object.assign({biblia:BIBLIA_INICIAL,ideias:[],livros:[],roteiros:[]},n);
+  salvarLocal();
+  if(document.activeElement!==$("bibliaTxt"))$("bibliaTxt").value=D.biblia;
+  render();
+};
+const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const esc=s=>(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const $=x=>document.getElementById(x);
+function opts(sel,lista,vazio){$(sel).innerHTML=(vazio?`<option value="">${vazio}</option>`:"")+lista.map(o=>typeof o==="string"?`<option>${esc(o)}</option>`:`<option value="${o.v}">${esc(o.t)}</option>`).join("")}
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),1800)}
+
+// abas
+document.querySelectorAll("#abas button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#abas button,section").forEach(e=>e.classList.remove("ativo"));
+  b.classList.add("ativo");$(b.dataset.aba).classList.add("ativo");render();
+});
+
+const cor=s=>({"Gravado":"verde","Publicado":"verde","Lido":"verde","Pronto para gravar":"verde","Roteirizando":"ouro","Lendo":"ouro","Revisando":"ouro","Pesquisando":"rosa","Procurando":"rosa"}[s]||"");
+const nomeLivro=i=>{const l=D.livros.find(x=>x.id===i);return l?l.titulo:""};
+const nomeIdeia=i=>{const l=D.ideias.find(x=>x.id===i);return l?l.titulo:""};
+
+function render(){
+  // ideias
+  const fi=$("fIdeia").value;
+  const ids=D.ideias.filter(x=>!fi||x.status===fi);
+  $("listaIdeias").innerHTML=ids.length?ids.map(x=>`<div class="card">
+    <h3>${esc(x.titulo)}</h3>
+    <div><span class="tag">${esc(x.tema)}</span> <span class="tag ${cor(x.status)}">${esc(x.status)}</span></div>
+    ${x.livro?`<div class="meta">📚 ${esc(nomeLivro(x.livro))}</div>`:""}
+    ${x.gancho?`<div class="prev">${esc(x.gancho)}</div>`:""}
+    <div class="acoes"><button class="btn peq" onclick="gerarDe('${x.id}')">✨ Roteiro</button><button class="btn sec peq" onclick="abrirIdeia('${x.id}')">Editar</button><button class="btn perigo peq" onclick="apagar('ideias','${x.id}')">Apagar</button></div>
+  </div>`).join(""):`<div class="vazio">Nenhuma ideia ainda. Qual mistério anda te arrepiando?</div>`;
+  // livros
+  const fl=$("fLivro").value;
+  const ls=D.livros.filter(x=>!fl||x.status===fl);
+  $("listaLivros").innerHTML=ls.length?ls.map(x=>`<div class="card">
+    <h3>${esc(x.titulo)}</h3>
+    <div class="meta">${esc([x.autor,x.ano].filter(Boolean).join(" · "))}</div>
+    <div><span class="tag ${cor(x.status)}">${esc(x.status)}</span>${x.onde?` <span class="tag">${esc(x.onde)}</span>`:""}</div>
+    ${x.resumo?`<div class="prev">${esc(x.resumo)}</div>`:""}
+    <div class="acoes"><button class="btn peq" onclick="estudar('${x.id}')">✨ Estudar</button><button class="btn sec peq" onclick="abrirLivro('${x.id}')">Editar</button><button class="btn perigo peq" onclick="apagar('livros','${x.id}')">Apagar</button></div>
+  </div>`).join(""):`<div class="vazio">Sua biblioteca está vazia. Comece pelos livros que você já leu.</div>`;
+  // roteiros
+  $("listaRoteiros").innerHTML=D.roteiros.length?D.roteiros.slice().reverse().map(x=>`<div class="card">
+    <h3>${esc(x.titulo)}</h3>
+    <div><span class="tag ${cor(x.status)}">${esc(x.status)}</span></div>
+    ${x.ideia?`<div class="meta">💡 ${esc(nomeIdeia(x.ideia))}</div>`:""}
+    <div class="meta">${new Date(x.data).toLocaleDateString("pt-BR")}</div>
+    <div class="prev">${esc(x.texto)}</div>
+    <div class="acoes"><button class="btn sec peq" onclick="abrirRoteiro('${x.id}')">Abrir</button><button class="btn perigo peq" onclick="apagar('roteiros','${x.id}')">Apagar</button></div>
+  </div>`).join(""):`<div class="vazio">Nenhum roteiro salvo ainda.</div>`;
+  // selects do gerar
+  opts("gIdeia",D.ideias.map(x=>({v:x.id,t:x.titulo})),"Sem ideia salva (descrevo abaixo)");
+  opts("gLivro",D.livros.map(x=>({v:x.id,t:x.titulo})),"Nenhum");
+  opts("gRoteiro",D.roteiros.map(x=>({v:x.id,t:x.titulo})),"Escolha");
+}
+
+// IDEIAS
+let editando=null;
+function abrirIdeia(i){
+  editando=i||null;const x=D.ideias.find(e=>e.id===i)||{};
+  opts("iTema",TEMAS);opts("iStatus",ST_IDEIA);opts("iLivro",D.livros.map(l=>({v:l.id,t:l.titulo})),"Nenhum");
+  $("dIdeiaT").textContent=i?"Editar ideia":"Nova ideia";
+  $("iTitulo").value=x.titulo||"";$("iTema").value=x.tema||TEMAS[0];$("iStatus").value=x.status||"Ideia";
+  $("iLivro").value=x.livro||"";$("iGancho").value=x.gancho||"";$("iNotas").value=x.notas||"";
+  $("dIdeia").showModal();
+}
+function salvarIdeia(){
+  const t=$("iTitulo").value.trim();if(!t)return toast("Dê um título para a ideia");
+  const o={id:editando||id(),titulo:t,tema:$("iTema").value,status:$("iStatus").value,livro:$("iLivro").value,gancho:$("iGancho").value,notas:$("iNotas").value};
+  if(editando)D.ideias=D.ideias.map(x=>x.id===editando?o:x);else D.ideias.push(o);
+  salvar();$("dIdeia").close();render();toast("Ideia salva");
+}
+// LIVROS
+function abrirLivro(i){
+  editando=i||null;const x=D.livros.find(e=>e.id===i)||{};
+  opts("lStatus",ST_LIVRO);
+  $("dLivroT").textContent=i?"Editar livro":"Novo livro";
+  ["Titulo","Autor","Ano","Onde","Resumo","Notas","Trechos"].forEach(k=>$("l"+k).value=x[k.toLowerCase()]||"");
+  $("lStatus").value=x.status||"Quero ler";$("dLivro").showModal();
+}
+function salvarLivro(){
+  const t=$("lTitulo").value.trim();if(!t)return toast("Coloque o título do livro");
+  const o={id:editando||id(),status:$("lStatus").value};
+  ["Titulo","Autor","Ano","Onde","Resumo","Notas","Trechos"].forEach(k=>o[k.toLowerCase()]=$("l"+k).value.trim());
+  if(editando)D.livros=D.livros.map(x=>x.id===editando?o:x);else D.livros.push(o);
+  salvar();$("dLivro").close();render();toast("Livro salvo");
+}
+// ROTEIROS
+function abrirRoteiro(i){
+  editando=i||null;const x=D.roteiros.find(e=>e.id===i)||{};
+  opts("rIdeia",D.ideias.map(l=>({v:l.id,t:l.titulo})),"Nenhuma");opts("rStatus",ST_ROT);
+  $("dRoteiroT").textContent=i?"Roteiro":"Novo roteiro";
+  $("rTitulo").value=x.titulo||"";$("rIdeia").value=x.ideia||"";$("rStatus").value=x.status||"Rascunho";$("rTexto").value=x.texto||"";
+  $("dRoteiro").showModal();
+}
+function salvarRoteiro(){
+  const t=$("rTitulo").value.trim();if(!t)return toast("Dê um título ao roteiro");
+  const ant=D.roteiros.find(x=>x.id===editando);
+  const o={id:editando||id(),titulo:t,ideia:$("rIdeia").value,status:$("rStatus").value,texto:$("rTexto").value,data:ant?ant.data:Date.now()};
+  if(editando)D.roteiros=D.roteiros.map(x=>x.id===editando?o:x);else D.roteiros.push(o);
+  salvar();$("dRoteiro").close();render();toast("Roteiro salvo");
+}
+function apagar(tipo,i){if(confirm("Apagar mesmo? Não dá para desfazer.")){D[tipo]=D[tipo].filter(x=>x.id!==i);salvar();render()}}
+
+// BÍBLIA
+let tB;function salvarBiblia(){clearTimeout(tB);tB=setTimeout(()=>{D.biblia=$("bibliaTxt").value;salvar()},400)}
+
+// GERAR
+function atualizaGerar(){
+  const t=$("gTipo").value;
+  $("gCampoIdeia").style.display=t==="roteiro"?"":"none";
+  $("gCampoLivro").style.display=t==="revisar"?"none":"";
+  $("gCampoRoteiro").style.display=t==="revisar"?"":"none";
+  $("gCampoTema").style.display=t==="ideias"?"":"none";
+  $("gCampoDur").style.display=(t==="roteiro"||t==="revisar")?"":"none";
+}
+function gerarDe(i){irPara("gerar");$("gTipo").value="roteiro";atualizaGerar();$("gIdeia").value=i;const x=D.ideias.find(e=>e.id===i);if(x&&x.livro)$("gLivro").value=x.livro}
+function estudar(i){irPara("gerar");$("gTipo").value="livro";atualizaGerar();$("gLivro").value=i}
+function irPara(a){document.querySelector(`#abas button[data-aba="${a}"]`).click()}
+
+function blocoLivro(l){
+  if(!l)return "";
+  return `\n## LIVRO DE APOIO\nTítulo: ${l.titulo}${l.autor?"\nAutor: "+l.autor:""}${l.ano?"\nÉpoca: "+l.ano:""}${l.resumo?"\nMeu resumo: "+l.resumo:""}${l.notas?"\nMinhas anotações: "+l.notas:""}${l.trechos?"\nTrechos que separei:\n"+l.trechos:""}\n`;
+}
+function montarPedido(){
+  const t=$("gTipo").value, livro=D.livros.find(x=>x.id===$("gLivro").value), extra=$("gExtra").value.trim();
+  let p=`Você é o assistente de roteiros do meu canal ByChu. Siga à risca a Bíblia do Canal abaixo: ela define meu tom, meu público e as regras.\n\n## BÍBLIA DO CANAL\n${D.biblia}\n`;
+  if(t==="roteiro"){
+    const i=D.ideias.find(x=>x.id===$("gIdeia").value);
+    p+=`\n## O QUE EU QUERO\nUm rascunho de roteiro em tópicos para um vídeo de ${$("gDur").value}.\n`;
+    if(i)p+=`\n## A IDEIA\nTítulo: ${i.titulo}\nTema: ${i.tema}${i.gancho?"\nGancho: "+i.gancho:""}${i.notas?"\nAnotações: "+i.notas:""}\n`;
+    p+=blocoLivro(livro);
+    p+=`\n## COMO ENTREGAR\n- Comece direto na cena ou no mistério, sem saudação genérica.\n- Conte a história em cena, com detalhes para a pessoa imaginar.\n- Marque [ANIMAÇÃO: ...] e [IMAGEM: ...] onde couberem.\n- Sinalize o que é lenda, tradição, teoria ou fato histórico.\n- Termine em esperança ou reflexão, sem resumo repetindo tudo.\n- No fim, sugira 3 títulos e uma ideia de thumbnail.\n`;
+  }else if(t==="ideias"){
+    const tema=$("gTema").value.trim();
+    p+=`\n## O QUE EU QUERO\nIdeias novas e diferentes de vídeos${tema?" sobre: "+tema:""}. Fuja do óbvio do nicho; prefiro histórias pouco conhecidas, livros raros e casos com detalhes reais.\nPara cada ideia: título provisório, o gancho que arrepia, de onde vem a história (e se é lenda, tradição, teoria ou fato) e por que alguém que nunca ouviu falar ficaria até o fim.\n`;
+    p+=blocoLivro(livro);
+    if(D.ideias.length)p+=`\nIdeias que já tenho (não repetir): ${D.ideias.map(x=>x.titulo).join("; ")}\n`;
+  }else if(t==="livro"){
+    if(!livro)return toast("Escolha o livro que quer estudar");
+    p+=`\n## O QUE EU QUERO\nEstudar este livro com você, aos poucos. Me conte o contexto (quem escreveu, quando, por que é raro ou importante), separe o que é fato histórico do que é lenda e me ajude a achar as partes que dariam bons vídeos.\n`+blocoLivro(livro);
+  }else{
+    const r=D.roteiros.find(x=>x.id===$("gRoteiro").value);
+    if(!r)return toast("Escolha o roteiro para revisar");
+    p+=`\n## O QUE EU QUERO\nRevise este roteiro (vídeo de ${$("gDur").value}) contra a Bíblia do Canal. Aponte onde ficou com cara de IA, onde a história perdeu o ritmo e onde faltou deixar claro se é lenda ou fato. Depois mostre a versão ajustada.\n\n## ROTEIRO\n${r.titulo}\n${r.texto}\n`;
+  }
+  if(extra)p+=`\n## OBSERVAÇÃO\n${extra}\n`;
+  $("pedidoSaida").value=p;$("gResultado").style.display="";$("gResultado").scrollIntoView({behavior:"smooth"});
+}
+function copiar(campo){const v=$(campo).value;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast("Copiado!")).catch(()=>{$(campo).select();document.execCommand("copy");toast("Copiado!")})}
+
+// BACKUP
+function exportar(){
+  const b=new Blob([JSON.stringify(D,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="bychu-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();
+}
+function importar(e){
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const n=JSON.parse(r.result);if(!n.ideias||!n.livros)throw 0;if(confirm("Substituir tudo pelo backup?")){D=n;salvar();$("bibliaTxt").value=D.biblia;render();toast("Backup restaurado")}}catch(x){toast("Arquivo de backup inválido")}};
+  r.readAsText(f);e.target.value="";
+}
+
+// início
+opts("fIdeia",ST_IDEIA,"Todos os status");opts("fLivro",ST_LIVRO,"Todos");
+$("bibliaTxt").value=D.biblia;render();atualizaGerar();
+</script>
+
+<!-- ===== NUVEM (Firebase) =====
+  Cole aqui o firebaseConfig do seu projeto Firebase.
+  Enquanto estiver null, o estúdio funciona só neste navegador. -->
+<script>
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDqUq8bJA5JOTzBZybEeSsvI0w-ejJ7ZAg",
+  authDomain: "bychu-estudio.firebaseapp.com",
+  projectId: "bychu-estudio",
+  storageBucket: "bychu-estudio.firebasestorage.app",
+  messagingSenderId: "195100987489",
+  appId: "1:195100987489:web:a4ce47852eb28ebfe89a20"
+};
+</script>
+
+<script type="module">
+const cfg = window.FIREBASE_CONFIG;
+const st = document.getElementById("nuvemStatus");
+const btn = document.getElementById("btnEntrar");
+function status(tipo, txt){ st.className = "tag " + (tipo||""); st.textContent = txt; }
+
+if (cfg) {
+  const V = "https://www.gstatic.com/firebasejs/11.0.2/";
+  const { initializeApp } = await import(V + "firebase-app.js");
+  const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = await import(V + "firebase-auth.js");
+  const { getFirestore, doc, getDoc, setDoc, onSnapshot } = await import(V + "firebase-firestore.js");
+
+  const app = initializeApp(cfg);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  let ref = null, timer = null, pendente = false, parar = null;
+
+  async function enviar(){
+    if (!ref) return;
+    try {
+      await setDoc(ref, JSON.parse(JSON.stringify(window.D_get())));
+      pendente = false; status("ok", "☁ salvo na nuvem");
+    } catch(e) { status("erro", "☁ erro ao salvar"); console.error(e); }
+  }
+
+  window.nuvem = {
+    agendar(){
+      if (!ref) return;
+      pendente = true; status("", "☁ salvando...");
+      clearTimeout(timer); timer = setTimeout(enviar, 1200);
+    }
+  };
+
+  window.entrar = () => signInWithPopup(auth, new GoogleAuthProvider())
+    .catch(e => window.toast("Não deu para entrar: " + e.code));
+  window.sair = () => { if (confirm("Sair da sua conta neste computador?")) signOut(auth); };
+
+  btn.style.display = "";
+  status("", "☁ fora da conta");
+
+  onAuthStateChanged(auth, async u => {
+    if (parar) { parar(); parar = null; }
+    if (!u) {
+      ref = null;
+      btn.textContent = "Entrar com Google"; btn.onclick = window.entrar;
+      status("", "☁ fora da conta");
+      return;
+    }
+    btn.textContent = "Sair"; btn.className = "btn sec peq"; btn.onclick = window.sair;
+    btn.title = u.email || "";
+    ref = doc(db, "estudios", u.uid);
+    status("", "☁ carregando...");
+    try {
+      const snap = await getDoc(ref);
+      const local = window.D_get();
+      const jaSincronizado = localStorage.getItem("bychu-uid") === u.uid;
+      if (snap.exists()) {
+        const nuvem = snap.data();
+        // computador novo ou nuvem mais recente: vale o que está na nuvem
+        if (!jaSincronizado || (nuvem.atualizado||0) >= (local.atualizado||0)) window.D_set(nuvem);
+        else await enviar();
+      } else {
+        await enviar(); // primeira vez: sobe o que já tem neste navegador
+      }
+      localStorage.setItem("bychu-uid", u.uid);
+      status("ok", "☁ salvo na nuvem");
+      // se você mexer no outro computador, aparece aqui sozinho
+      parar = onSnapshot(ref, s => {
+        if (pendente || s.metadata.hasPendingWrites || !s.exists()) return;
+        const n = s.data();
+        if ((n.atualizado||0) > (window.D_get().atualizado||0)) window.D_set(n);
+      });
+    } catch(e) {
+      status("erro", "☁ sem acesso à nuvem"); console.error(e);
+    }
+  });
+}
+</script>
+</body>
+</html>
