@@ -312,6 +312,8 @@ dialog.largo{width:min(860px,calc(100vw - 32px))}
     <div><label>🚀 Publicar em</label><input type="date" id="rPublicar"></div>
   </div>
   <label>Roteiro</label><textarea id="rTexto" style="min-height:300px"></textarea>
+  <details id="rPlanoBox" style="margin-top:10px"><summary style="cursor:pointer;color:var(--gold);font-size:14px">🎨 Plano de edição e animações</summary>
+    <textarea id="rPlano" style="min-height:220px;margin-top:6px" placeholder="Gere em ✨ Gerar → Plano de edição e animações, ou escreva o seu."></textarea></details>
   <div class="rodape"><button class="btn sec" onclick="gravarDoDialogo()">🎙 Modo gravação</button><button class="btn sec" onclick="copiar('rTexto')">📋 Copiar</button><button class="btn sec" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn" onclick="salvarRoteiro()">Salvar</button></div>
 </dialog>
 
@@ -868,13 +870,14 @@ function abrirRoteiro(i){
   $("dRoteiroT").textContent=i?"Roteiro":"Novo roteiro";
   $("rTitulo").value=x.titulo||"";$("rIdeia").value=x.ideia||"";$("rStatus").value=x.status||"Rascunho";$("rTexto").value=x.texto||"";
   ETAPAS.forEach(([k])=>$("r"+k[0].toUpperCase()+k.slice(1)).value=x[k]||"");
+  $("rPlano").value=x.planoEdicao||"";$("rPlanoBox").open=!!x.planoEdicao;
   $("dRoteiro").showModal();
 }
 function salvarRoteiro(){
   const t=$("rTitulo").value.trim();if(!t)return toast("Dê um título ao roteiro");
   const ant=D.roteiros.find(x=>x.id===editando);
   const o={id:editando||id(),titulo:t,ideia:$("rIdeia").value,status:$("rStatus").value,texto:$("rTexto").value,data:ant?ant.data:Date.now(),
-    gravar:$("rGravar").value,editar:$("rEditar").value,publicar:$("rPublicar").value};
+    gravar:$("rGravar").value,editar:$("rEditar").value,publicar:$("rPublicar").value,planoEdicao:$("rPlano").value};
   if(editando)D.roteiros=D.roteiros.map(x=>x.id===editando?o:x);else D.roteiros.push(o);
   salvar();$("dRoteiro").close();render();toast("Roteiro salvo");
 }
@@ -939,6 +942,7 @@ function montarPedido(){
   }else if(t==="edicao"){
     const r=D.roteiros.find(x=>x.id===$("gRoteiro").value);
     if(!r)return toast("Escolha o roteiro para planejar a edição");
+    pedidoCtx.roteiro=r.id;pedidoCtx.titulo=r.titulo;
     p+="\n"+DIRECAO_VISUAL+`\n## O QUE EU QUERO\nUm plano criativo de edição e animação para este roteiro, trecho por trecho. Para cada trecho: o que aparece na tela, que animação ou imagem entra, se a galinha participa e como, o som e o ritmo do corte.\nDepois do plano trecho a trecho, me entregue:\n1. Três ideias de "momento assinatura" que fujam do óbvio, cada uma com o nível de esforço (simples, médio ou caprichado).\n2. Uma versão enxuta do plano, só com o que é simples, para eu conseguir fazer rápido.\n3. Uma lista do que eu preciso desenhar, juntar ou gravar, na ordem em que vou usar.\n4. Ideias de thumbnail com a galinha e as estrelas douradas.\nNão altere o texto do roteiro; só proponha o visual em volta dele.\n\n## ROTEIRO\n${r.titulo}\n${r.texto}\n`;
   }else{
     const r=D.roteiros.find(x=>x.id===$("gRoteiro").value);
@@ -964,7 +968,8 @@ function iaStatus(t){const e=$("iaStatus");e.textContent=t;e.style.color=t.start
 function iaBotoes(rodando){
   $("btnPararIA").style.display=rodando?"":"none";$("btnGerarIA").disabled=rodando;
   const pronto=!rodando&&$("iaSaida").value.trim();
-  $("btnIaRot").style.display=pronto&&(pedidoCtx.tipo==="roteiro"||pedidoCtx.tipo==="revisar")?"":"none";
+  $("btnIaRot").style.display=pronto&&["roteiro","revisar","edicao"].includes(pedidoCtx.tipo)?"":"none";
+  $("btnIaRot").textContent=pedidoCtx.tipo==="edicao"?"🎬 Guardar plano no roteiro":"🎬 Salvar como roteiro";
   $("btnIaCap").style.display=pronto&&pedidoCtx.tipo==="livro"&&pedidoCtx.cap?"":"none";
 }
 async function gerarIA(){
@@ -1012,6 +1017,11 @@ function pararIA(){if(iaCtrl)iaCtrl.abort()}
 function iaParaRoteiro(){
   const texto=$("iaSaida").value.trim();if(!texto)return;
   let o;
+  if(pedidoCtx.tipo==="edicao"){
+    o=D.roteiros.find(x=>x.id===pedidoCtx.roteiro);if(!o)return toast("Não achei o roteiro");
+    if(o.planoEdicao&&!confirm("Esse roteiro já tem um plano de edição. Trocar pelo novo?"))return;
+    o.planoEdicao=texto;salvar();render();toast("Plano de edição guardado 🎬");irPara("roteiros");abrirRoteiro(o.id);return;
+  }
   if(pedidoCtx.tipo==="revisar"&&pedidoCtx.roteiro&&confirm("Trocar o texto do roteiro original por esta versão revisada? (Cancelar = salvar como roteiro novo)")){
     D.roteiros=D.roteiros.map(x=>x.id===pedidoCtx.roteiro?Object.assign({},x,{texto,status:"Revisando"}):x);o=D.roteiros.find(x=>x.id===pedidoCtx.roteiro);
   }else{
