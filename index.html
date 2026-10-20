@@ -56,6 +56,50 @@ dialog h3{margin:0 0 6px;font-family:'Cormorant Garamond',serif;font-size:24px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--gold);color:#241a00;padding:10px 18px;border-radius:999px;font-weight:700;opacity:0;transition:.3s;pointer-events:none}
 .toast.on{opacity:1}
 .prev{white-space:pre-wrap;color:var(--sub);font-size:14px;max-height:4.5em;overflow:hidden}
+.tres{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:600px){.tres{grid-template-columns:1fr}}
+dialog.largo{width:min(860px,calc(100vw - 32px))}
+
+/* MODO GRAVAÇÃO */
+#tele{position:fixed;inset:0;background:#07050f;z-index:50;display:none;flex-direction:column}
+#tele.on{display:flex}
+#teleBarra{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#141024ee;border-bottom:1px solid var(--line);transition:opacity .4s}
+#teleBarra .vel{color:var(--sub);font-size:13px;min-width:90px;text-align:center}
+#teleTela{flex:1;overflow-y:auto;scroll-behavior:auto;position:relative}
+#teleTexto{max-width:900px;margin:0 auto;padding:45vh 24px 80vh;white-space:pre-wrap;line-height:1.45;color:#fff;font-size:44px}
+#teleTexto .marca{color:var(--gold);opacity:.45;font-size:.55em;display:block}
+#teleTexto.semMarcas .marca{display:none}
+#tele.espelho #teleTexto{transform:scaleX(-1)}
+#teleGuia{position:absolute;left:0;right:0;top:40vh;height:0;border-top:2px dashed #f2c76e55;pointer-events:none}
+#tele.rodando #teleBarra{opacity:.15}#tele.rodando #teleBarra:hover{opacity:1}
+
+/* CALENDÁRIO */
+.calTopo{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.calTopo h3{margin:0;min-width:180px;text-align:center;font-family:'Cormorant Garamond',serif;font-size:24px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .dsem{color:var(--sub);font-size:12px;text-align:center;padding:4px 0}
+.cal .dia{min-height:86px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:5px;font-size:12px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+.cal .dia.fora{opacity:.35}.cal .dia.hoje{border-color:var(--gold)}
+.cal .num{color:var(--sub);font-weight:700}
+.ev{border-radius:6px;padding:1px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px}
+.ev.gravar{background:#e98fb533;color:var(--rosa)}.ev.editar{background:#f2c76e30;color:var(--gold)}.ev.publicar{background:#8fd6b433;color:var(--verde)}
+.legenda{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+@media(max-width:700px){.cal .dia{min-height:58px}.cal .ev{font-size:0;height:8px;padding:0}}
+.proximos{margin-top:18px;display:flex;flex-direction:column;gap:8px}
+.proximos .linha{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer}
+.proximos .data{min-width:92px;color:var(--sub);font-size:13px}
+
+/* ESTUDO DE LIVRO */
+.barraProg{height:8px;background:var(--bg2);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.barraProg div{height:100%;background:linear-gradient(90deg,var(--rosa),var(--gold))}
+.cap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.cap summary{cursor:pointer;display:flex;gap:8px;align-items:center;list-style:none}
+.cap summary::-webkit-details-marker{display:none}
+.cap summary .t{flex:1;font-weight:700}
+.cap .corpo{margin-top:8px}
+.cap.estudado{border-color:#8fd6b455}
+.chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px;color:var(--txt);cursor:pointer}
+.chk input{width:auto}
 </style>
 </head>
 <body>
@@ -74,6 +118,7 @@ dialog h3{margin:0 0 6px;font-family:'Cormorant Garamond',serif;font-size:24px}
   <button data-aba="ideias">💡 Ideias</button>
   <button data-aba="biblioteca">📚 Biblioteca</button>
   <button data-aba="roteiros">🎬 Roteiros</button>
+  <button data-aba="calendario">📅 Calendário</button>
   <button data-aba="biblia">📜 Bíblia do Canal</button>
 </nav>
 <main>
@@ -137,6 +182,22 @@ dialog h3{margin:0 0 6px;font-family:'Cormorant Garamond',serif;font-size:24px}
   <div id="listaRoteiros" class="grade"></div>
 </section>
 
+<!-- CALENDÁRIO -->
+<section id="calendario">
+  <h2>Calendário do canal</h2>
+  <p class="dica">As datas vêm dos roteiros. Abra um roteiro para marcar quando gravar, editar e publicar.</p>
+  <div class="calTopo">
+    <button class="btn sec peq" onclick="mudaMes(-1)" aria-label="Mês anterior">‹</button>
+    <h3 id="calMes"></h3>
+    <button class="btn sec peq" onclick="mudaMes(1)" aria-label="Próximo mês">›</button>
+    <button class="btn sec peq" onclick="mudaMes(0)">Hoje</button>
+  </div>
+  <div class="legenda"><span class="ev gravar">🎙 gravar</span><span class="ev editar">✂️ editar</span><span class="ev publicar">🚀 publicar</span></div>
+  <div class="cal" id="cal"></div>
+  <h3 style="margin-top:22px;font-family:'Cormorant Garamond',serif;font-size:22px">Próximos passos</h3>
+  <div class="proximos" id="proximos"></div>
+</section>
+
 <!-- BÍBLIA -->
 <section id="biblia">
   <h2>Bíblia do Canal</h2>
@@ -180,9 +241,52 @@ dialog h3{margin:0 0 6px;font-family:'Cormorant Garamond',serif;font-size:24px}
     <div><label>Ideia ligada</label><select id="rIdeia"></select></div>
     <div><label>Status</label><select id="rStatus"></select></div>
   </div>
+  <div class="tres">
+    <div><label>🎙 Gravar em</label><input type="date" id="rGravar"></div>
+    <div><label>✂️ Editar em</label><input type="date" id="rEditar"></div>
+    <div><label>🚀 Publicar em</label><input type="date" id="rPublicar"></div>
+  </div>
   <label>Roteiro</label><textarea id="rTexto" style="min-height:300px"></textarea>
-  <div class="rodape"><button class="btn sec" onclick="copiar('rTexto')">📋 Copiar</button><button class="btn sec" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn" onclick="salvarRoteiro()">Salvar</button></div>
+  <div class="rodape"><button class="btn sec" onclick="gravarDoDialogo()">🎙 Modo gravação</button><button class="btn sec" onclick="copiar('rTexto')">📋 Copiar</button><button class="btn sec" onclick="this.closest('dialog').close()">Cancelar</button><button class="btn" onclick="salvarRoteiro()">Salvar</button></div>
 </dialog>
+
+<dialog id="dEstudo" class="largo">
+  <h3 id="eTitulo">Estudo</h3>
+  <div class="meta" id="eMeta" style="color:var(--sub);font-size:14px"></div>
+  <div style="display:flex;align-items:center;gap:10px;margin:12px 0 4px">
+    <div class="barraProg" style="flex:1"><div id="eBarra" style="width:0"></div></div>
+    <span id="eProg" style="color:var(--sub);font-size:13px;white-space:nowrap"></span>
+  </div>
+  <div class="barra" style="margin-top:12px">
+    <input id="eNovoCap" placeholder="Nome do capítulo (ex.: Cap. 3 — O selo do anjo)" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')addCap()">
+    <button class="btn peq" onclick="addCap()">+ Capítulo</button>
+    <button class="btn sec peq" onclick="addVariosCaps()">+ Vários</button>
+  </div>
+  <div id="eCaps"></div>
+  <div class="rodape">
+    <button class="btn sec" onclick="pedidoEstudo()">✨ Pedido: estudar o próximo capítulo</button>
+    <button class="btn" onclick="fecharEstudo()">Fechar</button>
+  </div>
+</dialog>
+
+<!-- MODO GRAVAÇÃO -->
+<div id="tele" role="dialog" aria-label="Modo gravação">
+  <div id="teleBarra">
+    <button class="btn peq" id="teleBtn" onclick="teleToggle()">▶ Rolar</button>
+    <button class="btn sec peq" onclick="teleVel(-1)" aria-label="Mais devagar">−</button>
+    <span class="vel" id="teleVelTxt"></span>
+    <button class="btn sec peq" onclick="teleVel(1)" aria-label="Mais rápido">+</button>
+    <button class="btn sec peq" onclick="teleFonte(-4)">A−</button>
+    <button class="btn sec peq" onclick="teleFonte(4)">A+</button>
+    <button class="btn sec peq" onclick="teleTopo()">⏮ Início</button>
+    <label class="chk" style="margin:0"><input type="checkbox" id="teleMarcas" checked onchange="$('teleTexto').classList.toggle('semMarcas',!this.checked)"> marcações</label>
+    <label class="chk" style="margin:0"><input type="checkbox" onchange="$('tele').classList.toggle('espelho',this.checked)"> espelhar</label>
+    <span style="flex:1"></span>
+    <span style="color:var(--sub);font-size:12px">Espaço: rolar/pausar · ↑↓: velocidade · Esc: sair</span>
+    <button class="btn sec peq" onclick="teleFechar()">✕ Sair</button>
+  </div>
+  <div id="teleTela"><div id="teleGuia"></div><div id="teleTexto"></div></div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -282,23 +386,165 @@ function render(){
     <div class="meta">${esc([x.autor,x.ano].filter(Boolean).join(" · "))}</div>
     <div><span class="tag ${cor(x.status)}">${esc(x.status)}</span>${x.onde?` <span class="tag">${esc(x.onde)}</span>`:""}</div>
     ${x.resumo?`<div class="prev">${esc(x.resumo)}</div>`:""}
-    <div class="acoes"><button class="btn peq" onclick="estudar('${x.id}')">✨ Estudar</button><button class="btn sec peq" onclick="abrirLivro('${x.id}')">Editar</button><button class="btn perigo peq" onclick="apagar('livros','${x.id}')">Apagar</button></div>
+    ${progLivro(x)}
+    <div class="acoes"><button class="btn peq" onclick="abrirEstudo('${x.id}')">📖 Estudo</button><button class="btn sec peq" onclick="estudar('${x.id}')">✨ Pedido</button><button class="btn sec peq" onclick="abrirLivro('${x.id}')">Editar</button><button class="btn perigo peq" onclick="apagar('livros','${x.id}')">Apagar</button></div>
   </div>`).join(""):`<div class="vazio">Sua biblioteca está vazia. Comece pelos livros que você já leu.</div>`;
   // roteiros
   $("listaRoteiros").innerHTML=D.roteiros.length?D.roteiros.slice().reverse().map(x=>`<div class="card">
     <h3>${esc(x.titulo)}</h3>
     <div><span class="tag ${cor(x.status)}">${esc(x.status)}</span></div>
     ${x.ideia?`<div class="meta">💡 ${esc(nomeIdeia(x.ideia))}</div>`:""}
-    <div class="meta">${new Date(x.data).toLocaleDateString("pt-BR")}</div>
+    <div class="meta">Criado em ${new Date(x.data).toLocaleDateString("pt-BR")}</div>
+    ${datasRoteiro(x)}
     <div class="prev">${esc(x.texto)}</div>
-    <div class="acoes"><button class="btn sec peq" onclick="abrirRoteiro('${x.id}')">Abrir</button><button class="btn perigo peq" onclick="apagar('roteiros','${x.id}')">Apagar</button></div>
+    <div class="acoes"><button class="btn peq" onclick="teleAbrir('${x.id}')">🎙 Gravar</button><button class="btn sec peq" onclick="abrirRoteiro('${x.id}')">Abrir</button><button class="btn perigo peq" onclick="apagar('roteiros','${x.id}')">Apagar</button></div>
   </div>`).join(""):`<div class="vazio">Nenhum roteiro salvo ainda.</div>`;
-  // selects do gerar
+  // selects do gerar (mantém o que já estava escolhido)
+  const sel={gIdeia:$("gIdeia").value,gLivro:$("gLivro").value,gRoteiro:$("gRoteiro").value};
   opts("gIdeia",D.ideias.map(x=>({v:x.id,t:x.titulo})),"Sem ideia salva (descrevo abaixo)");
   opts("gLivro",D.livros.map(x=>({v:x.id,t:x.titulo})),"Nenhum");
   opts("gRoteiro",D.roteiros.map(x=>({v:x.id,t:x.titulo})),"Escolha");
+  Object.entries(sel).forEach(([k,v])=>{if(v&&[...$(k).options].some(o=>o.value===v))$(k).value=v});
+  renderCal();
+  if($("dEstudo").open)renderEstudo();
 }
 
+// ===== datas e calendário =====
+const hojeISO=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const dataBR=iso=>{const [a,m,d]=iso.split("-");return `${d}/${m}`};
+const ETAPAS=[["gravar","🎙","Gravar"],["editar","✂️","Editar"],["publicar","🚀","Publicar"]];
+function datasRoteiro(x){
+  const t=ETAPAS.filter(([k])=>x[k]).map(([k,ic])=>`<span class="ev ${k}" style="display:inline-block">${ic} ${dataBR(x[k])}</span>`).join(" ");
+  return t?`<div>${t}</div>`:"";
+}
+function eventos(){
+  const ev=[];
+  D.roteiros.forEach(r=>ETAPAS.forEach(([k,ic,nome])=>{if(r[k])ev.push({data:r[k],tipo:k,ic,nome,id:r.id,titulo:r.titulo})}));
+  return ev.sort((a,b)=>a.data.localeCompare(b.data));
+}
+let calRef=new Date();calRef.setDate(1);
+function mudaMes(n){if(n===0){calRef=new Date();calRef.setDate(1)}else calRef.setMonth(calRef.getMonth()+n);renderCal()}
+function renderCal(){
+  const ano=calRef.getFullYear(),mes=calRef.getMonth(),hoje=hojeISO();
+  {const t=calRef.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});$("calMes").textContent=t[0].toUpperCase()+t.slice(1);}
+  const ev=eventos(),porDia={};ev.forEach(e=>(porDia[e.data]=porDia[e.data]||[]).push(e));
+  const ini=new Date(ano,mes,1);ini.setDate(1-ini.getDay());
+  let h=["dom","seg","ter","qua","qui","sex","sáb"].map(d=>`<div class="dsem">${d}</div>`).join("");
+  for(let i=0;i<42;i++){
+    const d=new Date(ini);d.setDate(ini.getDate()+i);
+    if(i>=35&&d.getMonth()!==mes)break;
+    const iso=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    h+=`<div class="dia ${d.getMonth()!==mes?"fora":""} ${iso===hoje?"hoje":""}"><span class="num">${d.getDate()}</span>${(porDia[iso]||[]).map(e=>`<div class="ev ${e.tipo}" title="${esc(e.nome+": "+e.titulo)}" onclick="abrirRoteiro('${e.id}')">${e.ic} ${esc(e.titulo)}</div>`).join("")}</div>`;
+  }
+  $("cal").innerHTML=h;
+  const prox=ev.filter(e=>e.data>=hoje).slice(0,8);
+  $("proximos").innerHTML=prox.length?prox.map(e=>`<div class="linha" onclick="abrirRoteiro('${e.id}')"><span class="data">${e.data===hoje?"<b style='color:var(--gold)'>Hoje</b>":new Date(e.data+"T12:00").toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit"})}</span><span class="ev ${e.tipo}">${e.ic} ${e.nome}</span><span>${esc(e.titulo)}</span></div>`).join(""):`<div class="vazio">Nada marcado daqui pra frente. Abra um roteiro e coloque as datas.</div>`;
+}
+
+// ===== estudo de livro =====
+const ST_CAP=["Não lido","Lendo","Estudado"];
+function progLivro(l){
+  const c=l.capitulos||[];if(!c.length)return "";
+  const n=c.filter(x=>x.status==="Estudado").length,v=c.filter(x=>x.video).length;
+  return `<div class="barraProg"><div style="width:${Math.round(n/c.length*100)}%"></div></div><div class="meta">${n} de ${c.length} capítulos estudados${v?` · ${v} viram vídeo`:""}</div>`;
+}
+let estudoId=null;
+const livroAtual=()=>D.livros.find(x=>x.id===estudoId);
+function abrirEstudo(i){estudoId=i;$("eNovoCap").value="";renderEstudo();$("dEstudo").showModal()}
+function fecharEstudo(){$("dEstudo").close();render()}
+function renderEstudo(){
+  const l=livroAtual();if(!l){$("dEstudo").close();return}
+  const c=l.capitulos=l.capitulos||[];
+  $("eTitulo").textContent="📖 "+l.titulo;
+  $("eMeta").textContent=[l.autor,l.ano].filter(Boolean).join(" · ");
+  const n=c.filter(x=>x.status==="Estudado").length;
+  $("eBarra").style.width=c.length?Math.round(n/c.length*100)+"%":"0";
+  $("eProg").textContent=c.length?`${n} de ${c.length} estudados`:"sem capítulos ainda";
+  const aberto=[...document.querySelectorAll("#eCaps details[open]")].map(d=>d.dataset.id);
+  $("eCaps").innerHTML=c.length?c.map((x,i)=>`<details class="cap ${x.status==="Estudado"?"estudado":""}" data-id="${x.id}" ${aberto.includes(x.id)?"open":""}>
+    <summary><span class="t">${esc(x.titulo)}</span>${x.video?`<span class="tag ouro">🎬 vira vídeo</span>`:""}<span class="tag ${cor(x.status==="Estudado"?"Lido":x.status)}">${esc(x.status)}</span></summary>
+    <div class="corpo">
+      <div class="duas">
+        <div><label>Status</label><select onchange="capSet('${x.id}','status',this.value)">${ST_CAP.map(s=>`<option ${s===x.status?"selected":""}>${s}</option>`).join("")}</select></div>
+        <div><label>Nome do capítulo</label><input value="${esc(x.titulo)}" onchange="capSet('${x.id}','titulo',this.value)"></div>
+      </div>
+      <label>O que aprendi / o que me arrepiou</label>
+      <textarea oninput="capSet('${x.id}','notas',this.value,true)">${esc(x.notas)}</textarea>
+      <label class="chk"><input type="checkbox" ${x.video?"checked":""} onchange="capSet('${x.id}','video',this.checked)"> Isso daria um vídeo</label>
+      ${x.video?`<label>Qual seria o vídeo?</label><input value="${esc(x.ideiaTxt)}" placeholder="ex.: o ritual que ninguém conseguiu repetir" oninput="capSet('${x.id}','ideiaTxt',this.value,true)">`:""}
+      <div class="acoes" style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        ${x.video?(x.ideiaId&&D.ideias.some(d=>d.id===x.ideiaId)?`<span class="tag verde">💡 já está nas Ideias</span>`:`<button class="btn peq" onclick="capParaIdeia('${x.id}')">💡 Mandar para Ideias</button>`):""}
+        <button class="btn sec peq" onclick="capMover('${x.id}',-1)" ${i===0?"disabled":""}>↑</button>
+        <button class="btn sec peq" onclick="capMover('${x.id}',1)" ${i===c.length-1?"disabled":""}>↓</button>
+        <button class="btn perigo peq" onclick="capApagar('${x.id}')">Apagar</button>
+      </div>
+    </div></details>`).join(""):`<div class="vazio">Adicione os capítulos do livro (ou as partes, se ele não tiver capítulos).</div>`;
+}
+function addCap(){
+  const t=$("eNovoCap").value.trim();if(!t)return toast("Escreva o nome do capítulo");
+  livroAtual().capitulos.push({id:id(),titulo:t,status:"Não lido",notas:"",video:false,ideiaTxt:""});
+  $("eNovoCap").value="";salvar();renderEstudo();
+}
+function addVariosCaps(){
+  const n=parseInt(prompt("Quantos capítulos o livro tem?"),10);if(!n||n<1||n>200)return;
+  const c=livroAtual().capitulos;
+  const base=Math.max(0,...c.map(x=>{const m=/cap[ií]tulo\s*(\d+)/i.exec(x.titulo);return m?+m[1]:0}));
+  for(let i=1;i<=n;i++)c.push({id:id(),titulo:"Capítulo "+(base+i),status:"Não lido",notas:"",video:false,ideiaTxt:""});
+  salvar();renderEstudo();toast(n+" capítulos criados");
+}
+let tCap;
+function capSet(cid,campo,valor,suave){
+  const x=livroAtual().capitulos.find(c=>c.id===cid);if(!x)return;x[campo]=valor;
+  if(suave){clearTimeout(tCap);tCap=setTimeout(salvar,500)}else{salvar();renderEstudo()}
+}
+function capMover(cid,d){const c=livroAtual().capitulos,i=c.findIndex(x=>x.id===cid),j=i+d;if(j<0||j>=c.length)return;[c[i],c[j]]=[c[j],c[i]];salvar();renderEstudo()}
+function capApagar(cid){if(!confirm("Apagar este capítulo e as anotações dele?"))return;const l=livroAtual();l.capitulos=l.capitulos.filter(x=>x.id!==cid);salvar();renderEstudo()}
+function capParaIdeia(cid){
+  const l=livroAtual(),x=l.capitulos.find(c=>c.id===cid);
+  const o={id:id(),titulo:x.ideiaTxt.trim()||(l.titulo+" — "+x.titulo),tema:"Livros antigos (magia, bruxaria, alquimia)",status:"Ideia",livro:l.id,gancho:x.notas||"",notas:"Veio do estudo: "+x.titulo};
+  D.ideias.push(o);x.ideiaId=o.id;salvar();renderEstudo();toast("Ideia criada");
+}
+function pedidoEstudo(){const i=estudoId;$("dEstudo").close();estudar(i);montarPedido()}
+
+// ===== modo gravação =====
+let teleVelocidade=3,teleRodando=false,teleRAF=null,teleUlt=0,teleAcum=0;
+function teleTextoHTML(t){
+  return esc(t).split("\n").map(l=>/^\s*\[(ANIMAÇÃO|ANIMACAO|IMAGEM)/i.test(l)?`<span class="marca">${l}</span>`:l).join("\n").replace(/\n(<span class="marca">)/g,"$1").replace(/(<\/span>)\n/g,"$1");
+}
+function teleAbrir(rid,texto){
+  const r=D.roteiros.find(x=>x.id===rid);const t=texto!=null?texto:(r&&r.texto);
+  if(!t||!t.trim())return toast("Esse roteiro ainda está vazio");
+  $("teleTexto").innerHTML=teleTextoHTML(t);
+  try{const f=parseInt(localStorage.getItem("bychu-tele-fonte"),10);if(f)$("teleTexto").style.fontSize=f+"px";const v=parseInt(localStorage.getItem("bychu-tele-vel"),10);if(v)teleVelocidade=v}catch(e){}
+  $("teleVelTxt").textContent="velocidade "+teleVelocidade;
+  $("tele").classList.add("on");$("teleTela").scrollTop=0;
+  if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});
+}
+function gravarDoDialogo(){const t=$("rTexto").value;$("dRoteiro").close();teleAbrir(null,t)}
+function teleFechar(){telePara();$("tele").classList.remove("on");if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}
+function telePasso(ts){
+  if(!teleRodando)return;
+  const dt=teleUlt?Math.min(ts-teleUlt,100):16;teleUlt=ts;
+  teleAcum+=teleVelocidade*dt*0.012;
+  const px=Math.floor(teleAcum);
+  if(px>0){$("teleTela").scrollTop+=px;teleAcum-=px}
+  const tela=$("teleTela");
+  if(tela.scrollTop+tela.clientHeight>=tela.scrollHeight-2){telePara();return}
+  teleRAF=requestAnimationFrame(telePasso);
+}
+function teleToggle(){teleRodando?telePara():teleRoda()}
+function teleRoda(){teleRodando=true;teleUlt=0;$("teleBtn").textContent="⏸ Pausar";$("tele").classList.add("rodando");teleRAF=requestAnimationFrame(telePasso)}
+function telePara(){teleRodando=false;cancelAnimationFrame(teleRAF);$("teleBtn").textContent="▶ Rolar";$("tele").classList.remove("rodando")}
+function teleVel(d){teleVelocidade=Math.max(1,Math.min(10,teleVelocidade+d));$("teleVelTxt").textContent="velocidade "+teleVelocidade;try{localStorage.setItem("bychu-tele-vel",teleVelocidade)}catch(e){}}
+function teleFonte(d){const el=$("teleTexto"),f=Math.max(24,Math.min(96,(parseInt(getComputedStyle(el).fontSize,10)||44)+d));el.style.fontSize=f+"px";try{localStorage.setItem("bychu-tele-fonte",f)}catch(e){}}
+function teleTopo(){$("teleTela").scrollTop=0}
+document.addEventListener("keydown",e=>{
+  if(!$("tele").classList.contains("on"))return;
+  if(e.key===" "){e.preventDefault();teleToggle()}
+  else if(e.key==="ArrowUp"){e.preventDefault();teleVel(1)}
+  else if(e.key==="ArrowDown"){e.preventDefault();teleVel(-1)}
+  else if(e.key==="Escape"){teleFechar()}
+});
 // IDEIAS
 let editando=null;
 function abrirIdeia(i){
@@ -336,12 +582,14 @@ function abrirRoteiro(i){
   opts("rIdeia",D.ideias.map(l=>({v:l.id,t:l.titulo})),"Nenhuma");opts("rStatus",ST_ROT);
   $("dRoteiroT").textContent=i?"Roteiro":"Novo roteiro";
   $("rTitulo").value=x.titulo||"";$("rIdeia").value=x.ideia||"";$("rStatus").value=x.status||"Rascunho";$("rTexto").value=x.texto||"";
+  ETAPAS.forEach(([k])=>$("r"+k[0].toUpperCase()+k.slice(1)).value=x[k]||"");
   $("dRoteiro").showModal();
 }
 function salvarRoteiro(){
   const t=$("rTitulo").value.trim();if(!t)return toast("Dê um título ao roteiro");
   const ant=D.roteiros.find(x=>x.id===editando);
-  const o={id:editando||id(),titulo:t,ideia:$("rIdeia").value,status:$("rStatus").value,texto:$("rTexto").value,data:ant?ant.data:Date.now()};
+  const o={id:editando||id(),titulo:t,ideia:$("rIdeia").value,status:$("rStatus").value,texto:$("rTexto").value,data:ant?ant.data:Date.now(),
+    gravar:$("rGravar").value,editar:$("rEditar").value,publicar:$("rPublicar").value};
   if(editando)D.roteiros=D.roteiros.map(x=>x.id===editando?o:x);else D.roteiros.push(o);
   salvar();$("dRoteiro").close();render();toast("Roteiro salvo");
 }
@@ -365,7 +613,12 @@ function irPara(a){document.querySelector(`#abas button[data-aba="${a}"]`).click
 
 function blocoLivro(l){
   if(!l)return "";
-  return `\n## LIVRO DE APOIO\nTítulo: ${l.titulo}${l.autor?"\nAutor: "+l.autor:""}${l.ano?"\nÉpoca: "+l.ano:""}${l.resumo?"\nMeu resumo: "+l.resumo:""}${l.notas?"\nMinhas anotações: "+l.notas:""}${l.trechos?"\nTrechos que separei:\n"+l.trechos:""}\n`;
+  return `\n## LIVRO DE APOIO\nTítulo: ${l.titulo}${l.autor?"\nAutor: "+l.autor:""}${l.ano?"\nÉpoca: "+l.ano:""}${l.resumo?"\nMeu resumo: "+l.resumo:""}${l.notas?"\nMinhas anotações: "+l.notas:""}${l.trechos?"\nTrechos que separei:\n"+l.trechos:""}\n`+blocoCaps(l);
+}
+function blocoCaps(l){
+  const c=(l.capitulos||[]).filter(x=>x.notas||x.video);
+  if(!c.length)return "";
+  return "\nMinhas anotações por capítulo:\n"+c.map(x=>`- ${x.titulo} (${x.status})${x.notas?": "+x.notas:""}${x.video?" [vira vídeo"+(x.ideiaTxt?": "+x.ideiaTxt:"")+"]":""}`).join("\n")+"\n";
 }
 function montarPedido(){
   const t=$("gTipo").value, livro=D.livros.find(x=>x.id===$("gLivro").value), extra=$("gExtra").value.trim();
@@ -383,7 +636,16 @@ function montarPedido(){
     if(D.ideias.length)p+=`\nIdeias que já tenho (não repetir): ${D.ideias.map(x=>x.titulo).join("; ")}\n`;
   }else if(t==="livro"){
     if(!livro)return toast("Escolha o livro que quer estudar");
-    p+=`\n## O QUE EU QUERO\nEstudar este livro com você, aos poucos. Me conte o contexto (quem escreveu, quando, por que é raro ou importante), separe o que é fato histórico do que é lenda e me ajude a achar as partes que dariam bons vídeos.\n`+blocoLivro(livro);
+    const caps=livro.capitulos||[], prox=caps.find(x=>x.status!=="Estudado");
+    if(!caps.length||caps.every(x=>x.status==="Não lido"&&!x.notas)){
+      p+=`\n## O QUE EU QUERO\nComeçar a estudar este livro com você, aos poucos. Me conte o contexto (quem escreveu, quando, por que é raro ou importante), separe o que é fato histórico do que é lenda e me ajude a achar as partes que dariam bons vídeos.\n`;
+    }else if(prox){
+      p+=`\n## O QUE EU QUERO\nContinuar o estudo deste livro. Agora quero estudar: **${prox.titulo}**.\nExplique esse trecho com calma, ligue com o que eu já anotei nos capítulos anteriores, separe o que é fato histórico do que é lenda ou tradição, e me diga se tem algo ali que daria um bom vídeo.\n`;
+    }else{
+      p+=`\n## O QUE EU QUERO\nJá estudei todos os capítulos deste livro. Me ajude a fechar: as ideias centrais, o que mais arrepia, e quais vídeos dá para tirar dele (incluindo os que eu já marquei).\n`;
+    }
+    if(caps.length)p+=`\nCapítulos: ${caps.map(x=>x.titulo+(x.status==="Estudado"?" ✓":"")).join(" · ")}\n`;
+    p+=blocoLivro(livro);
   }else{
     const r=D.roteiros.find(x=>x.id===$("gRoteiro").value);
     if(!r)return toast("Escolha o roteiro para revisar");
