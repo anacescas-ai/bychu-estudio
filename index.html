@@ -118,6 +118,7 @@ dialog.largo{width:min(860px,calc(100vw - 32px))}
   <button data-aba="ideias">💡 Ideias</button>
   <button data-aba="biblioteca">📚 Biblioteca</button>
   <button data-aba="roteiros">🎬 Roteiros</button>
+  <button data-aba="extrator">🎧 Extrator</button>
   <button data-aba="calendario">📅 Calendário</button>
   <button data-aba="biblia">📜 Bíblia do Canal</button>
 </nav>
@@ -180,6 +181,47 @@ dialog.largo{width:min(860px,calc(100vw - 32px))}
   <p class="dica">Cole aqui o roteiro que o Claude devolveu e vá ajustando do seu jeito.</p>
   <div class="barra"><button class="btn" onclick="abrirRoteiro()">+ Novo roteiro</button></div>
   <div id="listaRoteiros" class="grade"></div>
+</section>
+
+<!-- EXTRATOR -->
+<section id="extrator">
+  <h2>Extrator do YouTube</h2>
+  <p class="dica">Transforme o que é falado num vídeo em texto limpo, para ler, colar em qualquer IA ou guardar como pesquisa.</p>
+
+  <details class="card" id="xInstalar" style="margin-bottom:14px">
+    <summary style="cursor:pointer;font-weight:700">📥 Instalar o botão "Pegar transcrição" nos favoritos <span class="meta">(uma vez em cada computador)</span></summary>
+    <ol style="margin:10px 0 4px;padding-left:20px;color:var(--sub);font-size:14px">
+      <li>Deixe a <b>barra de favoritos</b> aparecendo no navegador. No Edge e no Chrome: <b>Ctrl+Shift+B</b> (no Mac, <b>Cmd+Shift+B</b>). No Safari: menu <i>Visualizar → Mostrar Barra de Favoritos</i>.</li>
+      <li><b>Arraste</b> o botão abaixo até essa barra e solte.</li>
+      <li>Abra um vídeo no YouTube e clique no favorito. Ele pega a transcrição inteira, limpa e copia.</li>
+    </ol>
+    <div style="margin:12px 0 4px"><a id="bmLink" class="btn" href="#" draggable="true" onclick="event.preventDefault();toast('Arraste este botão para a barra de favoritos 😉')">📥 Pegar transcrição</a></div>
+    <p class="meta" style="margin:8px 0 0">Funciona em vídeos que têm transcrição (quase todos, pela legenda automática). Se um dia parar, me avisa que eu ajusto.</p>
+  </details>
+
+  <div class="card">
+    <h3 id="xCardT">Nova transcrição</h3>
+    <div class="duas">
+      <div><label>Link do vídeo</label><input id="xLink" placeholder="https://www.youtube.com/watch?v=..."></div>
+      <div><label>Título</label><input id="xTitulo" placeholder="Título do vídeo"></div>
+    </div>
+    <div class="duas">
+      <div><label>Ligar a uma ideia (opcional)</label><select id="xIdeia"></select></div>
+      <div><label>Ligar a um livro (opcional)</label><select id="xLivro"></select></div>
+    </div>
+    <label>Transcrição <span id="xConta" style="float:right"></span></label>
+    <textarea id="xTexto" style="min-height:260px" placeholder="Use o botão dos favoritos no YouTube, ou cole aqui o texto do painel 'Mostrar transcrição' e clique em Limpar." oninput="contaX()"></textarea>
+    <div class="rodape">
+      <button class="btn sec" onclick="limparX()">🧹 Limpar minutinhos</button>
+      <button class="btn sec" onclick="copiar('xTexto')">📋 Copiar</button>
+      <button class="btn sec" onclick="pedidoPesquisa()">✨ Pedido: pesquisar este vídeo</button>
+      <button class="btn sec" onclick="novaRef()">Limpar campos</button>
+      <button class="btn" onclick="guardarRef()">💾 Guardar</button>
+    </div>
+  </div>
+
+  <h3 style="margin-top:22px;font-family:'Cormorant Garamond',serif;font-size:22px">Transcrições guardadas</h3>
+  <div id="listaRefs" class="grade"></div>
 </section>
 
 <!-- CALENDÁRIO -->
@@ -343,6 +385,12 @@ function carregar(){
 }
 function salvarLocal(){try{localStorage.setItem(CHAVE,JSON.stringify(D))}catch(e){toast("Não consegui salvar neste navegador")}}
 function salvar(){D.atualizado=Date.now();salvarLocal();if(window.nuvem)window.nuvem.agendar()}
+// transcrições: guardadas à parte (na nuvem, cada uma num documento próprio)
+const CHAVE_REFS="bychu-estudio-refs";
+let R=(()=>{try{return JSON.parse(localStorage.getItem(CHAVE_REFS))||[]}catch(e){return []}})();
+function salvarRefsLocal(){try{localStorage.setItem(CHAVE_REFS,JSON.stringify(R))}catch(e){toast("O navegador ficou sem espaço para tantas transcrições. Na nuvem elas continuam guardadas.")}}
+window.R_get=()=>R;
+window.R_set=n=>{R=n;salvarRefsLocal();render()};
 // ponte com a nuvem (usada pelo módulo do Firebase)
 window.D_get=()=>D;
 window.D_set=n=>{
@@ -406,8 +454,167 @@ function render(){
   opts("gRoteiro",D.roteiros.map(x=>({v:x.id,t:x.titulo})),"Escolha");
   Object.entries(sel).forEach(([k,v])=>{if(v&&[...$(k).options].some(o=>o.value===v))$(k).value=v});
   renderCal();
+  renderRefs();
   if($("dEstudo").open)renderEstudo();
 }
+
+// ===== extrator do youtube =====
+function limparTranscricao(bruto){
+  const ts=/^\d{1,2}(:\d{2}){1,2}$/;
+  const un="(segundos?|minutos?|horas?|seconds?|minutes?|hours?)";
+  const dur=new RegExp("^\\d+\\s*"+un+"(\\s*(e|,|and)?\\s*\\d+\\s*"+un+")*$","i");
+  const lixo=/^(transcrição|transcript|pesquisar na transcrição|search in video|search transcript|mostrar transcrição|show transcript|seguir junto com a transcrição|capítulos|chapters|português|portuguese|inglês|english|\(gerada automaticamente\)|\(auto-generated\))$/i;
+  const linhas=String(bruto||"").replace(/\r/g,"").split("\n")
+    .map(l=>l.trim().replace(/^\d{1,2}(:\d{2}){1,2}\s+/,""))
+    .filter(l=>l&&!ts.test(l)&&!dur.test(l)&&!lixo.test(l));
+  const t=linhas.join(" ").replace(/\[(música|music|aplausos|applause|risos|laughter)\]/gi,"").replace(/\s+/g," ").trim();
+  if(!t)return "";
+  const par=[];let at="";
+  for(const w of t.split(" ")){
+    at+=(at?" ":"")+w;
+    if((at.length>=450&&/[.!?…]["”')]?$/.test(w))||at.length>=900){par.push(at);at=""}
+  }
+  if(at)par.push(at);
+  return par.join("\n\n");
+}
+const palavras=t=>(t.trim().match(/\S+/g)||[]).length;
+function contaX(){const n=palavras($("xTexto").value);$("xConta").textContent=n?`${n.toLocaleString("pt-BR")} palavras · ~${Math.max(1,Math.round(n/150))} min de fala`:""}
+function limparX(){
+  const antes=$("xTexto").value;
+  // se o texto colado já tiver título e link no topo (vindo do botão), aproveita
+  const m=/^(.+)\n(https?:\/\/\S*youtu\S*)\n\n/.exec(antes);
+  let corpo=antes;
+  if(m){if(!$("xTitulo").value)$("xTitulo").value=m[1].trim();if(!$("xLink").value)$("xLink").value=m[2];corpo=antes.slice(m[0].length)}
+  const limpo=limparTranscricao(corpo);
+  if(!limpo)return toast("Não achei texto para limpar");
+  $("xTexto").value=limpo;contaX();toast("Texto limpo ✨");
+}
+let refEditando=null;
+function novaRef(){
+  refEditando=null;["xLink","xTitulo","xTexto"].forEach(k=>$(k).value="");$("xIdeia").value="";$("xLivro").value="";
+  $("xCardT").textContent="Nova transcrição";contaX();
+}
+function guardarRef(){
+  let texto=$("xTexto").value.trim();
+  if(!texto)return toast("Cole ou pegue uma transcrição primeiro");
+  if(/^\d{1,2}:\d{2}$/m.test(texto)){texto=limparTranscricao(texto)}
+  const ant=R.find(x=>x.id===refEditando);
+  const o={id:refEditando||id(),titulo:$("xTitulo").value.trim()||"Vídeo sem título",link:$("xLink").value.trim(),texto,
+    ideia:$("xIdeia").value,livro:$("xLivro").value,data:ant?ant.data:Date.now()};
+  R=refEditando?R.map(x=>x.id===refEditando?o:x):[o,...R];
+  salvarRefsLocal();if(window.nuvem&&window.nuvem.salvarRef)window.nuvem.salvarRef(o);
+  novaRef();render();toast("Transcrição guardada");
+}
+function abrirRef(i){
+  const x=R.find(r=>r.id===i);if(!x)return;refEditando=i;
+  $("xLink").value=x.link||"";$("xTitulo").value=x.titulo||"";$("xTexto").value=x.texto||"";
+  $("xIdeia").value=x.ideia||"";$("xLivro").value=x.livro||"";$("xCardT").textContent="Editando: "+x.titulo;contaX();
+  $("xCardT").scrollIntoView({behavior:"smooth"});
+}
+function copiarRef(i){const x=R.find(r=>r.id===i);if(!x)return;const t=`${x.titulo}\n${x.link||""}\n\n${x.texto}`;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast("Copiado!")).catch(()=>toast("Abra a transcrição e use o Copiar"))}
+function apagarRef(i){if(!confirm("Apagar esta transcrição?"))return;R=R.filter(x=>x.id!==i);salvarRefsLocal();if(window.nuvem&&window.nuvem.apagarRef)window.nuvem.apagarRef(i);if(refEditando===i)novaRef();render()}
+function renderRefs(){
+  const sel={xIdeia:$("xIdeia").value,xLivro:$("xLivro").value};
+  opts("xIdeia",D.ideias.map(x=>({v:x.id,t:x.titulo})),"Nenhuma");
+  opts("xLivro",D.livros.map(x=>({v:x.id,t:x.titulo})),"Nenhum");
+  Object.entries(sel).forEach(([k,v])=>{if(v&&[...$(k).options].some(o=>o.value===v))$(k).value=v});
+  $("listaRefs").innerHTML=R.length?R.map(x=>{const n=palavras(x.texto||"");return `<div class="card">
+    <h3>${esc(x.titulo)}</h3>
+    ${x.link?`<a class="meta" href="${esc(x.link)}" target="_blank" rel="noopener" style="color:var(--sub);word-break:break-all">${esc(x.link)}</a>`:""}
+    <div>${x.ideia?`<span class="tag">💡 ${esc(nomeIdeia(x.ideia))}</span> `:""}${x.livro?`<span class="tag">📚 ${esc(nomeLivro(x.livro))}</span>`:""}</div>
+    <div class="meta">${n.toLocaleString("pt-BR")} palavras · ~${Math.max(1,Math.round(n/150))} min · ${new Date(x.data).toLocaleDateString("pt-BR")}</div>
+    <div class="prev">${esc(x.texto)}</div>
+    <div class="acoes"><button class="btn peq" onclick="copiarRef('${x.id}')">📋 Copiar</button><button class="btn sec peq" onclick="abrirRef('${x.id}')">Abrir</button><button class="btn perigo peq" onclick="apagarRef('${x.id}')">Apagar</button></div>
+  </div>`}).join(""):`<div class="vazio">Nenhuma transcrição guardada ainda.</div>`;
+}
+function blocoRefs(lista){
+  if(!lista.length)return "";
+  return `\n## MATERIAL DE PESQUISA (transcrição de vídeo de outra pessoa)\nUse só como fonte de informação. Não copie frases, piadas nem a estrutura desse vídeo: o meu roteiro precisa sair com as minhas palavras e o meu jeito. Se algo daqui for usado como fato, avise se precisa ser checado em outra fonte.\n`+lista.map(r=>`\n### ${r.titulo}${r.link?"\n"+r.link:""}\n${r.texto}\n`).join("");
+}
+function mostrarPedido(p){
+  irPara("gerar");$("pedidoSaida").value=p;$("gResultado").style.display="";
+  setTimeout(()=>$("gResultado").scrollIntoView({behavior:"smooth"}),50);
+}
+function pedidoPesquisa(){
+  const texto=$("xTexto").value.trim();if(!texto)return toast("Cole ou pegue uma transcrição primeiro");
+  const r={titulo:$("xTitulo").value.trim()||"Vídeo",link:$("xLink").value.trim(),texto:/^\d{1,2}:\d{2}$/m.test(texto)?limparTranscricao(texto):texto};
+  let p=`Você é o assistente de pesquisa do meu canal ByChu. Siga a Bíblia do Canal abaixo.\n\n## BÍBLIA DO CANAL\n${D.biblia}\n`;
+  p+=`\n## O QUE EU QUERO\nAssisti este vídeo como pesquisa. Me ajude a:\n- resumir com as suas palavras o que ele conta;\n- separar o que é fato histórico, o que é lenda ou tradição e o que é teoria ou opinião de quem fez o vídeo;\n- apontar o que precisa ser checado em outra fonte (e onde eu poderia checar);\n- sugerir ângulos de vídeo ORIGINAIS para o ByChu, que não copiem este.\n`;
+  const lv=D.livros.find(x=>x.id===$("xLivro").value);if(lv)p+=blocoLivro(lv);
+  p+=blocoRefs([r]);
+  mostrarPedido(p);
+}
+
+// botão dos favoritos: roda dentro da página do YouTube
+function pegarTranscricao(limpar){
+  var ESTUDIO="https://anacescas-ai.github.io/bychu-estudio/#extrator", ORIGEM="https://anacescas-ai.github.io";
+  if(!/(^|\.)youtube\.com$/.test(location.hostname)||!/[?&]v=/.test(location.search)){alert("Abra um vídeo do YouTube (a página do vídeo) e clique de novo no favorito.");return}
+  var velho=document.getElementById("bychu-pegar");if(velho)velho.remove();
+  var dorme=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+  var painel=function(){return document.querySelector('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]')};
+  var segs=function(){var p=painel()||document;return Array.prototype.slice.call(p.querySelectorAll("ytd-transcript-segment-renderer, transcript-segment-view-model"))};
+  var el=function(tag,css,txt){var e=document.createElement(tag);if(css)e.style.cssText=css;if(txt!=null)e.textContent=txt;return e};
+  var bt=function(txt,prim){return el("button","cursor:pointer;border-radius:10px;padding:8px 12px;font:700 13px system-ui,sans-serif;border:"+(prim?"0;background:#f2c76e;color:#241a00":"1px solid #3a3060;background:transparent;color:#efeaff"),txt)};
+  var caixa=el("div","position:fixed;top:70px;right:16px;z-index:2147483647;width:min(440px,calc(100vw - 32px));background:#1d1733;color:#efeaff;border:1px solid #3a3060;border-radius:14px;padding:14px;font:14px/1.45 system-ui,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.5)");
+  caixa.id="bychu-pegar";
+  var topo=el("div","font-weight:700;color:#f2c76e;margin-bottom:6px;font-size:15px","ByChu · pegando a transcrição...");
+  var msg=el("div","color:#b4a9d6","Abrindo o painel de transcrição do vídeo.");
+  var fechar=bt("✕");fechar.style.cssText+=";position:absolute;top:8px;right:8px;padding:2px 8px";fechar.onclick=function(){caixa.remove()};
+  caixa.append(topo,msg,fechar);document.body.append(caixa);
+  (async function(){
+    if(!segs().length){
+      var exp=document.querySelector("#description-inline-expander #expand, ytd-text-inline-expander #expand, tp-yt-paper-button#expand");
+      if(exp){exp.click();await dorme(500)}
+      var b=document.querySelector("ytd-video-description-transcript-section-renderer button")||Array.prototype.slice.call(document.querySelectorAll("button")).find(function(x){return /transcri/i.test((x.getAttribute("aria-label")||"")+" "+(x.textContent||""))});
+      if(b)b.click();
+      for(var i=0;i<48&&!segs().length;i++)await dorme(250);
+    }
+    var n=-1;for(var j=0;j<12&&segs().length!==n;j++){n=segs().length;await dorme(300)}
+    var lista=segs(),bruto="";
+    if(lista.length)bruto=lista.map(function(s){return s.innerText}).join("\n");
+    else if(painel())bruto=painel().innerText;
+    var texto=limpar(bruto);
+    if(!texto){
+      topo.textContent="ByChu · não achei a transcrição";
+      msg.textContent="Esse vídeo pode não ter transcrição, ou o YouTube mudou a página. Tente abrir “Mostrar transcrição” na descrição do vídeo e clique no favorito de novo.";
+      return;
+    }
+    var h1=document.querySelector("h1.ytd-watch-metadata, ytd-watch-metadata h1, h1.title");
+    var titulo=((h1&&h1.textContent)||document.title.replace(/ - YouTube$/,"")).trim();
+    var link="https://www.youtube.com/watch?v="+new URLSearchParams(location.search).get("v");
+    var completo=titulo+"\n"+link+"\n\n"+texto;
+    var np=(texto.match(/\S+/g)||[]).length;
+    topo.textContent="ByChu · transcrição pronta ✨";
+    msg.textContent=np.toLocaleString("pt-BR")+" palavras · ~"+Math.max(1,Math.round(np/150))+" min de fala";
+    var area=el("textarea","width:100%;height:180px;margin:10px 0;background:#141024;color:#efeaff;border:1px solid #3a3060;border-radius:10px;padding:8px;font:13px/1.45 system-ui,sans-serif;box-sizing:border-box");
+    area.readOnly=true;area.value=completo;
+    var linha=el("div","display:flex;gap:8px;flex-wrap:wrap");
+    var bCopiar=bt("📋 Copiar",true),bEnviar=bt("📤 Mandar para o estúdio"),aviso=el("div","color:#8fd6b4;font-size:13px;margin-top:8px","");
+    var copiar=function(){var ok=function(){aviso.textContent="Copiado! É só colar onde quiser."};if(navigator.clipboard)navigator.clipboard.writeText(completo).then(ok).catch(function(){area.select();document.execCommand("copy");ok()});else{area.select();document.execCommand("copy");ok()}};
+    bCopiar.onclick=copiar;
+    bEnviar.onclick=function(){
+      var w=window.open(ESTUDIO,"bychu-estudio"),tent=0,recebido=false;
+      var ouvir=function(e){if(e.origin===ORIGEM&&e.data==="bychu-recebido"){recebido=true;aviso.textContent="Enviado para a aba Extrator do estúdio ✨";window.removeEventListener("message",ouvir)}};
+      window.addEventListener("message",ouvir);
+      var iv=setInterval(function(){tent++;if(recebido||tent>40||!w||w.closed){clearInterval(iv);if(!recebido)aviso.textContent="Não consegui mandar. Use o Copiar e cole na aba Extrator.";return}try{w.postMessage({tipo:"bychu-transcricao",titulo:titulo,link:link,texto:texto},ORIGEM)}catch(x){}},500);
+    };
+    linha.append(bCopiar,bEnviar);caixa.append(area,linha,aviso);
+    copiar();
+  })();
+}
+function linkFavorito(){
+  return "javascript:"+encodeURIComponent("("+pegarTranscricao.toString()+")("+limparTranscricao.toString()+")");
+}
+// recebe a transcrição mandada pelo botão (só aceita vindo do YouTube)
+window.addEventListener("message",e=>{
+  if(!/^https:\/\/(www\.|m\.)?youtube\.com$/.test(e.origin))return;
+  const d=e.data;if(!d||d.tipo!=="bychu-transcricao"||typeof d.texto!=="string")return;
+  try{e.source.postMessage("bychu-recebido",e.origin)}catch(x){}
+  if($("xTexto").value===d.texto)return;
+  irPara("extrator");novaRef();
+  $("xTitulo").value=String(d.titulo||"").slice(0,300);$("xLink").value=String(d.link||"").slice(0,300);$("xTexto").value=d.texto;contaX();
+  toast("Transcrição recebida do YouTube ✨");
+});
 
 // ===== datas e calendário =====
 const hojeISO=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
@@ -628,6 +835,7 @@ function montarPedido(){
     p+=`\n## O QUE EU QUERO\nUm rascunho de roteiro em tópicos para um vídeo de ${$("gDur").value}.\n`;
     if(i)p+=`\n## A IDEIA\nTítulo: ${i.titulo}\nTema: ${i.tema}${i.gancho?"\nGancho: "+i.gancho:""}${i.notas?"\nAnotações: "+i.notas:""}\n`;
     p+=blocoLivro(livro);
+    if(i)p+=blocoRefs(R.filter(r=>r.ideia===i.id));
     p+=`\n## COMO ENTREGAR\n- Comece direto na cena ou no mistério, sem saudação genérica.\n- Conte a história em cena, com detalhes para a pessoa imaginar.\n- Marque [ANIMAÇÃO: ...] e [IMAGEM: ...] onde couberem.\n- Sinalize o que é lenda, tradição, teoria ou fato histórico.\n- Termine em esperança ou reflexão, sem resumo repetindo tudo.\n- No fim, sugira 3 títulos e uma ideia de thumbnail.\n`;
   }else if(t==="ideias"){
     const tema=$("gTema").value.trim();
@@ -658,18 +866,20 @@ function copiar(campo){const v=$(campo).value;(navigator.clipboard?navigator.cli
 
 // BACKUP
 function exportar(){
-  const b=new Blob([JSON.stringify(D,null,2)],{type:"application/json"});
+  const b=new Blob([JSON.stringify(Object.assign({},D,{referencias:R.map(({nuvem,...r})=>r)}),null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="bychu-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();
 }
 function importar(e){
   const f=e.target.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{const n=JSON.parse(r.result);if(!n.ideias||!n.livros)throw 0;if(confirm("Substituir tudo pelo backup?")){D=n;salvar();$("bibliaTxt").value=D.biblia;render();toast("Backup restaurado")}}catch(x){toast("Arquivo de backup inválido")}};
+  r.onload=()=>{try{const n=JSON.parse(r.result);if(!n.ideias||!n.livros)throw 0;if(confirm("Substituir tudo pelo backup?")){const refs=Array.isArray(n.referencias)?n.referencias:null;delete n.referencias;D=n;salvar();if(refs){R=refs;salvarRefsLocal();if(window.nuvem&&window.nuvem.salvarRef)refs.forEach(r=>window.nuvem.salvarRef(r))}$("bibliaTxt").value=D.biblia;render();toast("Backup restaurado")}}catch(x){toast("Arquivo de backup inválido")}};
   r.readAsText(f);e.target.value="";
 }
 
 // início
 opts("fIdeia",ST_IDEIA,"Todos os status");opts("fLivro",ST_LIVRO,"Todos");
 $("bibliaTxt").value=D.biblia;render();atualizaGerar();
+$("bmLink").href=linkFavorito();
+if(location.hash==="#extrator")irPara("extrator");
 </script>
 
 <!-- ===== NUVEM (Firebase) =====
@@ -707,12 +917,47 @@ if (cfg) {
 }
 if (fb) {
   const { initializeApp, getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-          getFirestore, doc, getDoc, setDoc, onSnapshot } = fb;
+          getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs, deleteDoc } = fb;
 
   const app = initializeApp(cfg);
   const auth = getAuth(app);
   const db = getFirestore(app);
-  let ref = null, timer = null, pendente = false, parar = null;
+  let ref = null, timer = null, pendente = false, parar = null, pararRefs = null, uidAtual = null, refsNaNuvem = false;
+  const semFlag = r => { const c = JSON.parse(JSON.stringify(r)); delete c.nuvem; return c; };
+
+  async function salvarRef(r){
+    if (!uidAtual || !refsNaNuvem) return;
+    try {
+      await setDoc(doc(db, "estudios", uidAtual, "referencias", r.id), semFlag(r));
+      status("ok", "☁ salvo na nuvem");
+    } catch(e) { status("erro", "☁ erro ao salvar transcrição"); console.error(e); }
+  }
+  async function apagarRef(id){
+    if (!uidAtual || !refsNaNuvem) return;
+    try { await deleteDoc(doc(db, "estudios", uidAtual, "referencias", id)); } catch(e) { console.error(e); }
+  }
+  async function sincronizarRefs(u){
+    const col = collection(db, "estudios", u.uid, "referencias");
+    try {
+      const s = await getDocs(col);
+      refsNaNuvem = true;
+      const daNuvem = s.docs.map(d => ({ ...d.data(), nuvem: true }));
+      const ids = new Set(daNuvem.map(r => r.id));
+      // as que só existem aqui e nunca subiram: sobem agora. As que já tinham subido e sumiram da nuvem foram apagadas em outro computador.
+      const subir = window.R_get().filter(r => !ids.has(r.id) && !r.nuvem);
+      for (const r of subir) await salvarRef(r);
+      window.R_set([...subir.map(r => ({ ...r, nuvem: true })), ...daNuvem].sort((a,b) => (b.data||0) - (a.data||0)));
+      pararRefs = onSnapshot(col, s2 => {
+        if (s2.metadata.hasPendingWrites) return;
+        window.R_set(s2.docs.map(d => ({ ...d.data(), nuvem: true })).sort((a,b) => (b.data||0) - (a.data||0)));
+      }, e => console.error(e));
+    } catch(e) {
+      refsNaNuvem = false;
+      console.error(e);
+      status("erro", "☁ transcrições só neste navegador");
+      st.title = "As transcrições não conseguiram ir para a nuvem. Confira as regras do Firestore (veja a aba Extrator).";
+    }
+  }
 
   async function enviar(){
     if (!ref) return;
@@ -723,6 +968,7 @@ if (fb) {
   }
 
   window.nuvem = {
+    salvarRef, apagarRef,
     agendar(){
       if (!ref) return;
       pendente = true; status("", "☁ salvando...");
@@ -739,6 +985,8 @@ if (fb) {
 
   onAuthStateChanged(auth, async u => {
     if (parar) { parar(); parar = null; }
+    if (pararRefs) { pararRefs(); pararRefs = null; }
+    uidAtual = u ? u.uid : null; refsNaNuvem = false;
     if (!u) {
       ref = null;
       btn.textContent = "Entrar com Google"; btn.onclick = window.entrar;
@@ -769,6 +1017,7 @@ if (fb) {
         const n = s.data();
         if ((n.atualizado||0) > (window.D_get().atualizado||0)) window.D_set(n);
       });
+      await sincronizarRefs(u);
     } catch(e) {
       status("erro", "☁ sem acesso à nuvem"); console.error(e);
     }
