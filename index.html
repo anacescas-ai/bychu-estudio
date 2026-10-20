@@ -551,28 +551,55 @@ function pegarTranscricao(limpar){
   if(!/(^|\.)youtube\.com$/.test(location.hostname)||!/[?&]v=/.test(location.search)){alert("Abra um vídeo do YouTube (a página do vídeo) e clique de novo no favorito.");return}
   var velho=document.getElementById("bychu-pegar");if(velho)velho.remove();
   var dorme=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
-  var painel=function(){return document.querySelector('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]')};
-  var segs=function(){var p=painel()||document;return Array.prototype.slice.call(p.querySelectorAll("ytd-transcript-segment-renderer, transcript-segment-view-model"))};
+  var TS=/^\s*\d{1,2}(:\d{2}){1,2}\s*$/;
+  var fora="#movie_player,.html5-video-player,#description,ytd-text-inline-expander,#bychu-pegar,ytd-comments,#comments";
+  var folhas=function(raiz){return Array.prototype.slice.call((raiz||document.body).querySelectorAll("*")).filter(function(e){return e.childElementCount===0&&TS.test(e.textContent||"")&&!e.closest(fora)&&e.getClientRects().length>0})};
+  var segundos=function(t){return t.trim().split(":").reduce(function(a,x){return a*60+(+x)},0)};
+  var linhaDe=function(f){var base=f.textContent.trim(),r=f.parentElement;while(r&&r!==document.body&&(r.innerText||"").trim()===base)r=r.parentElement;return r};
+  var achar=function(){
+    var fs=folhas();if(fs.length<5)return null;
+    var cont=new Map();
+    fs.forEach(function(f){for(var a=f.parentElement;a&&a!==document.body;a=a.parentElement)cont.set(a,(cont.get(a)||0)+1)});
+    var melhor=null,prof=-1;
+    cont.forEach(function(n,a){if(n>=fs.length*0.8){var d=0;for(var x=a;x;x=x.parentElement)d++;if(d>prof){prof=d;melhor=a}}});
+    return melhor;
+  };
+  var rolavel=function(e){for(var a=e;a&&a!==document.body;a=a.parentElement){var o=getComputedStyle(a).overflowY;if((o==="auto"||o==="scroll"||o==="overlay")&&a.scrollHeight>a.clientHeight+20)return a}return null};
   var el=function(tag,css,txt){var e=document.createElement(tag);if(css)e.style.cssText=css;if(txt!=null)e.textContent=txt;return e};
   var bt=function(txt,prim){return el("button","cursor:pointer;border-radius:10px;padding:8px 12px;font:700 13px system-ui,sans-serif;border:"+(prim?"0;background:#f2c76e;color:#241a00":"1px solid #3a3060;background:transparent;color:#efeaff"),txt)};
-  var caixa=el("div","position:fixed;top:70px;right:16px;z-index:2147483647;width:min(440px,calc(100vw - 32px));background:#1d1733;color:#efeaff;border:1px solid #3a3060;border-radius:14px;padding:14px;font:14px/1.45 system-ui,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.5)");
+  var caixa=el("div","position:fixed;bottom:16px;left:16px;z-index:2147483647;width:min(440px,calc(100vw - 32px));background:#1d1733;color:#efeaff;border:1px solid #3a3060;border-radius:14px;padding:14px;font:14px/1.45 system-ui,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.5)");
   caixa.id="bychu-pegar";
   var topo=el("div","font-weight:700;color:#f2c76e;margin-bottom:6px;font-size:15px","ByChu · pegando a transcrição...");
   var msg=el("div","color:#b4a9d6","Abrindo o painel de transcrição do vídeo.");
   var fechar=bt("✕");fechar.style.cssText+=";position:absolute;top:8px;right:8px;padding:2px 8px";fechar.onclick=function(){caixa.remove()};
   caixa.append(topo,msg,fechar);document.body.append(caixa);
   (async function(){
-    if(!segs().length){
+    if(!achar()){
       var exp=document.querySelector("#description-inline-expander #expand, ytd-text-inline-expander #expand, tp-yt-paper-button#expand");
       if(exp){exp.click();await dorme(500)}
-      var b=document.querySelector("ytd-video-description-transcript-section-renderer button")||Array.prototype.slice.call(document.querySelectorAll("button")).find(function(x){return /transcri/i.test((x.getAttribute("aria-label")||"")+" "+(x.textContent||""))});
+      var b=document.querySelector("ytd-video-description-transcript-section-renderer button")||Array.prototype.slice.call(document.querySelectorAll("button, [role=button]")).find(function(x){return /transcri/i.test((x.getAttribute("aria-label")||"")+" "+(x.textContent||""))&&!x.closest("#bychu-pegar")});
       if(b)b.click();
-      for(var i=0;i<48&&!segs().length;i++)await dorme(250);
+      for(var i=0;i<60&&!achar();i++)await dorme(250);
+      await dorme(600);
     }
-    var n=-1;for(var j=0;j<12&&segs().length!==n;j++){n=segs().length;await dorme(300)}
-    var lista=segs(),bruto="";
-    if(lista.length)bruto=lista.map(function(s){return s.innerText}).join("\n");
-    else if(painel())bruto=painel().innerText;
+    var lista=achar(),bruto="";
+    if(lista){
+      var juntas=new Map();
+      var coletar=function(){folhas(lista).forEach(function(f){var r=linhaDe(f);if(!r||r===lista)return;var tx=limpar(r.innerText||"").replace(/\s+/g," ").trim();var k=f.textContent.trim()+"|"+tx;if(tx&&!juntas.has(k))juntas.set(k,{s:segundos(f.textContent),t:tx})})};
+      var sc=rolavel(lista)||rolavel(folhas(lista)[0]);
+      if(sc){
+        var volta=sc.scrollTop;sc.scrollTop=0;await dorme(400);
+        for(var passo=0;passo<3000;passo++){
+          coletar();
+          if(sc.scrollTop+sc.clientHeight>=sc.scrollHeight-4)break;
+          sc.scrollTop+=Math.max(120,Math.floor(sc.clientHeight*0.8));
+          msg.textContent="Lendo a transcrição... "+Math.min(99,Math.round((sc.scrollTop+sc.clientHeight)/sc.scrollHeight*100))+"%";
+          await dorme(110);
+        }
+        await dorme(250);coletar();sc.scrollTop=volta;
+      }else coletar();
+      bruto=Array.from(juntas.values()).sort(function(a,b){return a.s-b.s}).map(function(x){return x.t}).join("\n");
+    }
     var texto=limpar(bruto);
     if(!texto){
       topo.textContent="ByChu · não achei a transcrição";
